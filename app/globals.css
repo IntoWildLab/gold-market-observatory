@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #0d1117;
+  color: #e6edf3;
+  font-feature-settings: "tnum";
+}
+
+/* 金融终端感: 等宽数字、清晰分隔线 */
+.num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  @apply bg-[#161b22] border border-[#2d333b] rounded-lg;
+}
+
+.panel-title {
+  @apply text-sm font-semibold text-[#e6edf3] mb-1;
+}
+
+.panel-sub {
+  @apply text-xs text-[#8b949e];
+}
+
+.src-tag {
+  @apply text-[10px] px-1.5 py-0.5 rounded border border-[#2d333b] text-[#8b949e] inline-block;
+}
+
+.mock-tag {
+  @apply text-[10px] px-1.5 py-0.5 rounded border border-amber-500/50 text-amber-400 inline-block font-bold;
+}
+
+.proxy-tag {
+  @apply text-[10px] px-1.5 py-0.5 rounded border border-sky-500/40 text-sky-400 inline-block;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d333b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

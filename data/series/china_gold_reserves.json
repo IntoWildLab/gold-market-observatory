@@ -1,0 +1,275 @@
+{
+  "meta": {
+    "series": "china_gold_reserves",
+    "name": "中国央行黄金储备",
+    "description": "中国官方黄金储备(吨), 季度 (WGC/IMF IFS, 数据源自人民银行官方储备资产)",
+    "unit": "tonnes",
+    "frequency": "quarterly",
+    "source": {
+      "name": "World Gold Council / IMF IFS",
+      "url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "tier": "aggregator",
+      "update_note": "季度更新 (WGC 中央银行仪表盘, 基于 IMF IFS)",
+      "lag_note": "人民银行按月公布官方储备资产; 本站 v1 采用 WGC/IMF IFS 季度汇总口径, 月度明细见人民银行官网",
+      "requires_api_key": false
+    }
+  },
+  "observations": [
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2020-09-30",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q3 20), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2020-12-31",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q4 20), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2021-03-31",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q1 21), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2021-06-30",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q2 21), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2021-09-30",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q3 21), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2021-12-31",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q4 21), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2022-03-31",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q1 22), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2022-06-30",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q2 22), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2022-09-30",
+      "value": 1948.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q3 22), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2022-12-31",
+      "value": 2010.51,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q4 22), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2023-03-31",
+      "value": 2068.36,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q1 23), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2023-06-30",
+      "value": 2113.46,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q2 23), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2023-09-30",
+      "value": 2191.53,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q3 23), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2023-12-31",
+      "value": 2235.39,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q4 23), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2024-03-31",
+      "value": 2262.45,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q1 24), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2024-06-30",
+      "value": 2264.32,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q2 24), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2024-09-30",
+      "value": 2264.32,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q3 24), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2024-12-31",
+      "value": 2279.56,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q4 24), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2025-03-31",
+      "value": 2292.31,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q1 25), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2025-06-30",
+      "value": 2298.53,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q2 25), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2025-09-30",
+      "value": 2303.51,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q3 25), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2025-12-31",
+      "value": 2306.3,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q4 25), 基于 IMF IFS 汇总"
+    },
+    {
+      "series": "china_gold_reserves",
+      "observation_date": "2026-03-31",
+      "value": 2313.46,
+      "unit": "tonnes",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS (依据中国人民银行公布数据)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(吨), 季度 (Q1 26), 基于 IMF IFS 汇总"
+    }
+  ],
+  "last_fetched_at": "2026-08-17T15:02:41.237Z",
+  "last_observation_date": "2026-03-31",
+  "all_real": true
+}

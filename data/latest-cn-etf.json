@@ -1,0 +1,17 @@
+{
+  "code": "518880",
+  "name": "华安黄金ETF",
+  "price": 9.068,
+  "prev_close": 8.946,
+  "change_pct": 1.363737983456292,
+  "volume_shares": 445054556,
+  "amount": 4032553610,
+  "quote_date": "2026-08-17",
+  "quote_time": "15:34:58",
+  "fetched_at": "2026-08-17T15:02:41.237Z",
+  "source": {
+    "name": "新浪财经行情(交易所挂牌数据)",
+    "url": "https://finance.sina.com.cn/",
+    "note": "实时行情快照, 报价为最新成交价"
+  }
+}

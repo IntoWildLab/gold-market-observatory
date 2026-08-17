@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "outDir": ".tmp-pipeline",
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": false,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] },
+    "types": ["node"]
+  },
+  "include": ["scripts/fetch-data.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts"],
+  "exclude": ["node_modules", "app", "components"]
+}

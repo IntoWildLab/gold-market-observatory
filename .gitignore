@@ -1,0 +1,50 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build/
+/dist/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env
+.env
+.env.local
+.env.production
+.env.*
+!.env.example
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# pipeline 编译产物(沙箱内用 tsc 编译运行)
+/.tmp-pipeline/
+
+# local platform / tooling state
+/.vercel/
+/.cache/
+/cache/
+
+# data raw cache (运行时抓取的原始数据，不应入库)
+/data/raw/
+
+# 数据源调研输出(开发期缓存, 不属于运行时正式快照)
+/scripts/probes/probe-out/
+/scripts/probe-out2/
+
+# 保留 data/series 快照（提交以支持离线运行与审计）
+!/data/series/

@@ -1,0 +1,274 @@
+{
+  "meta": {
+    "series": "china_gold_reserves_usd",
+    "name": "中国央行黄金储备(美元)",
+    "description": "中国官方黄金储备(亿美元), 季度",
+    "unit": "usd_hundred_millions",
+    "frequency": "quarterly",
+    "source": {
+      "name": "World Gold Council / IMF IFS",
+      "url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "tier": "aggregator",
+      "update_note": "季度更新",
+      "requires_api_key": false
+    }
+  },
+  "observations": [
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2020-09-30",
+      "value": 1181.9542,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q3 20)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2020-12-31",
+      "value": 1182.3926,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q4 20)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2021-03-31",
+      "value": 1059.2737,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q1 21)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2021-06-30",
+      "value": 1104.4372,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q2 21)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2021-09-30",
+      "value": 1091.6899,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q3 21)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2021-12-31",
+      "value": 1131.1844,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q4 21)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2022-03-31",
+      "value": 1216.5628,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q1 22)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2022-06-30",
+      "value": 1138.1688000000001,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q2 22)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2022-09-30",
+      "value": 1047.1842,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q3 22)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2022-12-31",
+      "value": 1172.4080000000001,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q4 22)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2023-03-31",
+      "value": 1316.5004999999999,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q1 23)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2023-06-30",
+      "value": 1299.3739,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q2 23)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2023-09-30",
+      "value": 1317.9542999999999,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q3 23)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2023-12-31",
+      "value": 1493.7460999999998,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q4 23)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2024-03-31",
+      "value": 1610.7182,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q1 24)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2024-06-30",
+      "value": 1696.8952,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q2 24)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2024-09-30",
+      "value": 1914.6036,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q3 24)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2024-12-31",
+      "value": 1912.2094,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q4 24)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2025-03-31",
+      "value": 2295.8287,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q1 25)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2025-06-30",
+      "value": 2429.4256,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q2 25)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2025-09-30",
+      "value": 2833.0172,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q3 25)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2025-12-31",
+      "value": 3238.7237,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q4 25)"
+    },
+    {
+      "series": "china_gold_reserves_usd",
+      "observation_date": "2026-03-31",
+      "value": 3427.6907,
+      "unit": "usd_hundred_millions",
+      "frequency": "quarterly",
+      "source": "World Gold Council / IMF IFS",
+      "source_url": "https://www.gold.org/goldhub/data/gold-reserves-by-country",
+      "fetched_at": "2026-08-17T15:02:41.237Z",
+      "note": "中国官方黄金储备(亿美元), 季度 (Q1 26)"
+    }
+  ],
+  "last_fetched_at": "2026-08-17T15:02:41.237Z",
+  "last_observation_date": "2026-03-31",
+  "all_real": true
+}
