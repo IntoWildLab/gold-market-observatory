@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-18T17:11:11.837Z",
+  "generated_at": "2026-08-18T23:01:12.149Z",
   "series": [
     {
       "series": "au99_99",
@@ -11,7 +11,7 @@
       "is_proxy_of": null,
       "observations": 729,
       "last_observation_date": "2026-08-17",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -24,7 +24,7 @@
       "is_proxy_of": null,
       "observations": 66,
       "last_observation_date": "2026-06-30",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -37,7 +37,7 @@
       "is_proxy_of": null,
       "observations": 23,
       "last_observation_date": "2026-03-31",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -50,7 +50,7 @@
       "is_proxy_of": null,
       "observations": 23,
       "last_observation_date": "2026-03-31",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -63,7 +63,7 @@
       "is_proxy_of": null,
       "observations": 522,
       "last_observation_date": "2026-08-18",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -76,7 +76,7 @@
       "is_proxy_of": null,
       "observations": 55,
       "last_observation_date": "2026-06-30",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -89,7 +89,7 @@
       "is_proxy_of": "DXY (ICE 美元指数)",
       "observations": 751,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -102,7 +102,7 @@
       "is_proxy_of": null,
       "observations": 5468,
       "last_observation_date": "2026-08-17",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -115,7 +115,7 @@
       "is_proxy_of": null,
       "observations": 450,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -128,7 +128,7 @@
       "is_proxy_of": null,
       "observations": 1222,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -141,7 +141,7 @@
       "is_proxy_of": null,
       "observations": 755,
       "last_observation_date": "2026-08-17",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -152,9 +152,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 751,
-      "last_observation_date": "2026-08-17",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "observations": 752,
+      "last_observation_date": "2026-08-18",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -165,9 +165,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 750,
-      "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "observations": 751,
+      "last_observation_date": "2026-08-17",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -178,9 +178,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 750,
-      "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "observations": 751,
+      "last_observation_date": "2026-08-17",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     },
     {
@@ -193,7 +193,7 @@
       "is_proxy_of": null,
       "observations": 751,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-18T17:11:11.837Z",
+      "last_fetched_at": "2026-08-18T23:01:12.149Z",
       "all_real": true
     }
   ]
