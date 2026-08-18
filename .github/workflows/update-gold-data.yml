@@ -1,0 +1,91 @@
+name: Update Gold Market Data
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-gold-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update-data:
+    name: Fetch, validate, and commit data
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify required repository secret
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          if [ -z "$FRED_API_KEY" ]; then
+            echo "::error::Required repository secret FRED_API_KEY is not configured."
+            exit 1
+          fi
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Fetch current gold market data
+        id: fetch
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: npm run data:fetch
+
+      - name: Validate data quality and freshness
+        id: quality
+        run: npm run data:check
+
+      - name: Detect substantive data changes
+        id: semantic
+        run: npm run data:changes
+
+      - name: Commit and push substantive updates
+        id: commit
+        if: steps.semantic.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/series data/derived data/manifest.json data/latest-spot.json data/latest-cn-etf.json
+          git commit -m "chore(data): update gold market snapshots"
+          git push origin HEAD:main
+
+      - name: Write update summary
+        if: always()
+        env:
+          FETCH_OUTCOME: ${{ steps.fetch.outcome }}
+          QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+          QUALITY_STATUS: ${{ steps.quality.outputs.status }}
+          QUALITY_WARNINGS: ${{ steps.quality.outputs.warnings }}
+          SUBSTANTIVE_CHANGED: ${{ steps.semantic.outputs.changed }}
+          COMMIT_OUTCOME: ${{ steps.commit.outcome }}
+        run: |
+          {
+            echo "# Gold data update summary"
+            echo
+            echo "- Trigger: **Manual**"
+            echo "- Fetch: **${FETCH_OUTCOME:-Not run}**"
+            echo "- Quality gate: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
+            echo "- Daily series: **validated with 7-day warning / 14-day failure tolerance**"
+            echo "- Weekly series: **validated with 14-day warning / 28-day failure tolerance**"
+            echo "- Quarterly series: **validated with 150-day warning / 220-day failure tolerance**"
+            echo "- Warnings: **${QUALITY_WARNINGS:-Not available}**"
+            echo "- Substantive data changed: **${SUBSTANTIVE_CHANGED:-Not evaluated}**"
+            if [ "${SUBSTANTIVE_CHANGED:-false}" = "true" ] && [ "${COMMIT_OUTCOME:-}" = "success" ]; then
+              echo "- Commit created: **Yes**"
+            else
+              echo "- Commit created: **No**"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
