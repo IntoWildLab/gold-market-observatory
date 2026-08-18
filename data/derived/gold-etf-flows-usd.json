@@ -1,7 +1,7 @@
 {
   "series": "gold_etf_flows_usd",
   "frequency": "weekly",
-  "fetched_at": "2026-08-17T15:02:41.237Z",
+  "fetched_at": "2026-08-18T17:11:11.837Z",
   "rows": [
     {
       "date": "2018-01-05",
@@ -4485,12 +4485,22 @@
     },
     {
       "date": "2026-08-07",
-      "totalUsd": 3045499190.18,
+      "totalUsd": 3053363400.18,
       "regionsUsd": {
         "North America": 1068149531.67,
-        "Europe": 1177253390.28,
+        "Europe": 1185117600.28,
         "Asia": 805899868.23,
         "Other": -5803600
+      }
+    },
+    {
+      "date": "2026-08-14",
+      "totalUsd": 3522871678.3799996,
+      "regionsUsd": {
+        "North America": 1056343080.22,
+        "Europe": 2273840278.39,
+        "Asia": 175684019.76999998,
+        "Other": 17004300
       }
     }
   ]
