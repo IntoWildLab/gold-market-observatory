@@ -2,6 +2,9 @@ name: Update Gold Market Data
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * *'
+      timezone: 'Asia/Shanghai'
 
 permissions:
   contents: write
@@ -72,10 +75,15 @@ jobs:
           SUBSTANTIVE_CHANGED: ${{ steps.semantic.outputs.changed }}
           COMMIT_OUTCOME: ${{ steps.commit.outcome }}
         run: |
+          if [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            TRIGGER="Scheduled"
+          else
+            TRIGGER="Manual"
+          fi
           {
             echo "# Gold data update summary"
             echo
-            echo "- Trigger: **Manual**"
+            echo "- Trigger: **${TRIGGER}**"
             echo "- Fetch: **${FETCH_OUTCOME:-Not run}**"
             echo "- Quality gate: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
             echo "- Daily series: **validated with 7-day warning / 14-day failure tolerance**"
