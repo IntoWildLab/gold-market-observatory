@@ -80,7 +80,18 @@ async function readExisting(series: SeriesId): Promise<SeriesFile | null> {
 function mergeObservations(existing: Observation[] | null | undefined, next: Observation[]): Observation[] {
   const map = new Map<string, Observation>();
   for (const o of existing ?? []) map.set(o.observation_date, o);
-  for (const o of next) map.set(o.observation_date, o);
+  for (const o of next) {
+    const previous = map.get(o.observation_date);
+    if (previous) {
+      const { fetched_at: previousFetchedAt, ...previousContent } = previous;
+      const { fetched_at: nextFetchedAt, ...nextContent } = o;
+      // Re-fetching unchanged history must not rewrite every observation's
+      // audit timestamp. Preserve the first successful fetch time unless the
+      // observation itself (value/source/note/etc.) has genuinely changed.
+      if (JSON.stringify(previousContent) === JSON.stringify(nextContent)) continue;
+    }
+    map.set(o.observation_date, o);
+  }
   return [...map.values()].sort((a, b) => a.observation_date.localeCompare(b.observation_date));
 }
 
