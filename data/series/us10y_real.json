@@ -8274,9 +8274,20 @@
       "source_url": "https://fred.stlouisfed.org/series/DFII10",
       "fetched_at": "2026-08-18T23:01:12.149Z",
       "note": "美国10年期实际利率 (10Y TIPS)"
+    },
+    {
+      "series": "us10y_real",
+      "observation_date": "2026-08-18",
+      "value": 2.41,
+      "unit": "percent",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DFII10",
+      "fetched_at": "2026-08-19T22:45:50.481Z",
+      "note": "美国10年期实际利率 (10Y TIPS)"
     }
   ],
-  "last_fetched_at": "2026-08-18T23:01:12.149Z",
-  "last_observation_date": "2026-08-17",
+  "last_fetched_at": "2026-08-19T22:45:50.481Z",
+  "last_observation_date": "2026-08-18",
   "all_real": true
 }

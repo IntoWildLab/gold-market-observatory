@@ -5756,9 +5756,20 @@
       "source_url": "https://gu.qq.com/sh518880",
       "fetched_at": "2026-08-18T23:01:12.149Z",
       "note": "华安黄金ETF(518880) 收盘价(元/份), 成交量 3,597,531 手"
+    },
+    {
+      "series": "cn_gold_etf_price",
+      "observation_date": "2026-08-19",
+      "value": 8.974,
+      "unit": "cny_per_share",
+      "frequency": "daily",
+      "source": "腾讯行情(上交所挂牌数据)",
+      "source_url": "https://gu.qq.com/sh518880",
+      "fetched_at": "2026-08-19T22:45:50.481Z",
+      "note": "华安黄金ETF(518880) 收盘价(元/份), 成交量 4,002,566 手"
     }
   ],
-  "last_fetched_at": "2026-08-18T23:01:12.149Z",
-  "last_observation_date": "2026-08-18",
+  "last_fetched_at": "2026-08-19T22:45:50.481Z",
+  "last_observation_date": "2026-08-19",
   "all_real": true
 }

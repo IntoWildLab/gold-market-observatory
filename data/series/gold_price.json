@@ -8319,9 +8319,20 @@
       "source_url": "https://www.gold.org/goldhub/data/gold-prices",
       "fetched_at": "2026-08-18T23:01:12.149Z",
       "note": "LBMA 黄金定盘价(伦敦下午定盘, USD/oz), 由 ICE Benchmark Administration 管理"
+    },
+    {
+      "series": "gold_price",
+      "observation_date": "2026-08-18",
+      "value": 4403.5,
+      "unit": "usd_per_oz",
+      "frequency": "daily",
+      "source": "World Gold Council / LBMA Gold Price (PM Fix, USD)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-prices",
+      "fetched_at": "2026-08-19T22:45:50.481Z",
+      "note": "LBMA 黄金定盘价(伦敦下午定盘, USD/oz), 由 ICE Benchmark Administration 管理"
     }
   ],
-  "last_fetched_at": "2026-08-18T23:01:12.149Z",
-  "last_observation_date": "2026-08-17",
+  "last_fetched_at": "2026-08-19T22:45:50.481Z",
+  "last_observation_date": "2026-08-18",
   "all_real": true
 }
