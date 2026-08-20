@@ -8296,9 +8296,20 @@
       "source_url": "https://fred.stlouisfed.org/series/T10YIE",
       "fetched_at": "2026-08-19T22:45:50.481Z",
       "note": "美国10年期通胀预期"
+    },
+    {
+      "series": "us10y_breakeven",
+      "observation_date": "2026-08-20",
+      "value": 2.34,
+      "unit": "percent",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/T10YIE",
+      "fetched_at": "2026-08-20T22:48:18.830Z",
+      "note": "美国10年期通胀预期"
     }
   ],
-  "last_fetched_at": "2026-08-19T22:45:50.481Z",
-  "last_observation_date": "2026-08-19",
+  "last_fetched_at": "2026-08-20T22:48:18.830Z",
+  "last_observation_date": "2026-08-20",
   "all_real": true
 }
