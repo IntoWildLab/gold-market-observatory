@@ -60184,9 +60184,20 @@
       "source_url": "https://www.spdrgoldshares.com/usa/gld/",
       "fetched_at": "2026-08-20T22:48:18.830Z",
       "note": "SPDR GLD 官方持仓(吨)。注意: 为代表性单只 ETF, 不等于全球黄金 ETF 总持仓。"
+    },
+    {
+      "series": "gld_holdings",
+      "observation_date": "2026-08-20",
+      "value": 1038.93,
+      "unit": "tonnes",
+      "frequency": "daily",
+      "source": "SPDR Gold Shares (State Street)",
+      "source_url": "https://www.spdrgoldshares.com/usa/gld/",
+      "fetched_at": "2026-08-21T22:44:59.684Z",
+      "note": "SPDR GLD 官方持仓(吨)。注意: 为代表性单只 ETF, 不等于全球黄金 ETF 总持仓。"
     }
   ],
-  "last_fetched_at": "2026-08-20T22:48:18.830Z",
-  "last_observation_date": "2026-08-19",
+  "last_fetched_at": "2026-08-21T22:44:59.684Z",
+  "last_observation_date": "2026-08-20",
   "all_real": true
 }

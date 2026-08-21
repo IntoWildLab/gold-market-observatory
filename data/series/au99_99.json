@@ -8055,9 +8055,20 @@
       "source_url": "https://www.gold.org/goldhub/data/gold-prices",
       "fetched_at": "2026-08-20T22:48:18.830Z",
       "note": "上海黄金交易所 Au99.99 午盘价格(人民币/克)。注意: 是国内人民币计价黄金的重要价格参考, 不是'国内版 XAU/USD', 两者交易市场/报价单位/市场结构不同。"
+    },
+    {
+      "series": "au99_99",
+      "observation_date": "2026-08-20",
+      "value": 969.96,
+      "unit": "cny_per_gram",
+      "frequency": "daily",
+      "source": "World Gold Council (汇编自上海黄金交易所 Au99.99)",
+      "source_url": "https://www.gold.org/goldhub/data/gold-prices",
+      "fetched_at": "2026-08-21T22:44:59.684Z",
+      "note": "上海黄金交易所 Au99.99 午盘价格(人民币/克)。注意: 是国内人民币计价黄金的重要价格参考, 不是'国内版 XAU/USD', 两者交易市场/报价单位/市场结构不同。"
     }
   ],
-  "last_fetched_at": "2026-08-20T22:48:18.830Z",
-  "last_observation_date": "2026-08-19",
+  "last_fetched_at": "2026-08-21T22:44:59.684Z",
+  "last_observation_date": "2026-08-20",
   "all_real": true
 }
