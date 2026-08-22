@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-21T22:44:59.684Z",
+  "generated_at": "2026-08-22T22:42:04.294Z",
   "series": [
     {
       "series": "au99_99",
@@ -9,9 +9,9 @@
       "source": "World Gold Council (SGE Au99.99)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 732,
-      "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "observations": 733,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -24,7 +24,7 @@
       "is_proxy_of": null,
       "observations": 66,
       "last_observation_date": "2026-06-30",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -37,7 +37,7 @@
       "is_proxy_of": null,
       "observations": 23,
       "last_observation_date": "2026-03-31",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -50,7 +50,7 @@
       "is_proxy_of": null,
       "observations": 23,
       "last_observation_date": "2026-03-31",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -63,7 +63,7 @@
       "is_proxy_of": null,
       "observations": 525,
       "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -76,7 +76,7 @@
       "is_proxy_of": null,
       "observations": 55,
       "last_observation_date": "2026-06-30",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -89,7 +89,7 @@
       "is_proxy_of": "DXY (ICE 美元指数)",
       "observations": 751,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -102,7 +102,7 @@
       "is_proxy_of": null,
       "observations": 5471,
       "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -115,7 +115,7 @@
       "is_proxy_of": null,
       "observations": 450,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -128,7 +128,7 @@
       "is_proxy_of": null,
       "observations": 1222,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -139,9 +139,9 @@
       "source": "World Gold Council / LBMA",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 758,
-      "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "observations": 759,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -154,7 +154,7 @@
       "is_proxy_of": null,
       "observations": 755,
       "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -167,7 +167,7 @@
       "is_proxy_of": null,
       "observations": 754,
       "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -180,7 +180,7 @@
       "is_proxy_of": null,
       "observations": 754,
       "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     },
     {
@@ -193,7 +193,7 @@
       "is_proxy_of": null,
       "observations": 751,
       "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-21T22:44:59.684Z",
+      "last_fetched_at": "2026-08-22T22:42:04.294Z",
       "all_real": true
     }
   ]

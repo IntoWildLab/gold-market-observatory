@@ -1,8 +1,8 @@
 {
-  "price_usd": 4602.66,
-  "as_of_date": "2026-08-21",
-  "timestamp": "2026-08-21 22:01:45",
-  "fetched_at": "2026-08-21T22:44:59.684Z",
+  "price_usd": 4602.99,
+  "as_of_date": "2026-08-22",
+  "timestamp": "2026-08-22 22:40:01",
+  "fetched_at": "2026-08-22T22:42:04.294Z",
   "source": {
     "name": "World Gold Council 现货报价 (fsapi.gold.org)",
     "url": "https://www.gold.org/goldhub/data/gold-prices",
@@ -10,7 +10,7 @@
   },
   "cross_check": {
     "price_usd": 4604.399902,
-    "updated_at": "2026-08-21T22:44:40Z",
+    "updated_at": "2026-08-22T22:41:42Z",
     "source": "gold-api.com"
   }
 }
