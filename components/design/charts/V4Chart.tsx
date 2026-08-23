@@ -27,9 +27,10 @@ export const V4 = {
   axis: "#a8a193",
   tick: { fill: "#6b6459", fontSize: 12, fontFamily: "ui-monospace, monospace" },
   tooltip: {
-    contentStyle: { background: "#ffffff", border: "1px solid #e7e0d0", borderRadius: 10, fontSize: 13, color: "#2a2a28", boxShadow: "0 8px 24px rgba(60,50,20,0.08)", padding: "8px 12px" },
+    contentStyle: { background: "#ffffff", border: "1px solid #e7e0d0", borderRadius: 10, fontSize: 13, color: "#2a2a28", boxShadow: "0 8px 24px rgba(60,50,20,0.08)", padding: "8px 12px", maxWidth: "min(260px, calc(100vw - 32px))" },
     labelStyle: { color: "#7d766a", fontSize: 11, marginBottom: 2 },
     itemStyle: { color: "#2a2a28" },
+    wrapperStyle: { maxWidth: "calc(100vw - 24px)", pointerEvents: "none" as const },
   },
 };
 
@@ -73,7 +74,7 @@ export function V4AreaChart({ points, color, unit, height = 240, ranges = ["1M",
           ))}
         </div>
       )}
-      <div className={heightClassName} style={heightClassName ? undefined : { height }}>
+      <div className={`${heightClassName ?? ""} touch-pan-y`} style={heightClassName ? undefined : { height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
             <defs>

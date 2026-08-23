@@ -63,6 +63,18 @@ const pp = (v: number | null | undefined) => (v === null || v === undefined ? "�
 const compactCny = (v: number | null | undefined) => (
   v === null || v === undefined ? "—" : new Intl.NumberFormat("zh-CN", { notation: "compact", maximumFractionDigits: 2 }).format(v)
 );
+const trackingExplanation = (value: number | null | undefined) => {
+  if (value === null || value === undefined) return "共同样本不足";
+  if (Math.abs(value) < 0.005) return "基金NAV与Au99.99基本持平";
+  return `NAV相对Au99.99${value > 0 ? "高" : "低"}${Math.abs(value).toFixed(2)}个百分点`;
+};
+const premiumExplanation = (value: number | null, available: boolean, alignment: string | null) => {
+  if (!available || value === null) {
+    return alignment === "nav_lagged" ? "暂无同日正式折溢价 · NAV日期滞后" : "暂无同日正式折溢价";
+  }
+  if (Math.abs(value) < 0.005) return "市价与官方NAV基本持平";
+  return `市价较官方NAV${value > 0 ? "高" : "低"}${Math.abs(value).toFixed(2)}%`;
+};
 
 function ResponsiveDisclosure({ label, children, desktopOpen = false }: { label: string; children: React.ReactNode; desktopOpen?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -131,14 +143,40 @@ function InternationalGoldSummary({ data: d }: { data: DesignData }) {
   );
 }
 
-function InternationalGoldChart({ points }: { points: VPoint[] }) {
+type CoreSeriesId = "gold_price" | "au99_99" | "cn_gold_etf_price";
+function CoreGoldTrendChart({ data: d }: { data: DesignData }) {
+  const [seriesId, setSeriesId] = useState<CoreSeriesId>("au99_99");
+  const series = [
+    { id: "gold_price" as const, selector: "XAU/USD", title: "国际黄金 XAU/USD", sub: "全球黄金价格锚", unit: "USD/oz", color: T.gold },
+    { id: "au99_99" as const, selector: "Au99.99", title: "Au99.99", sub: "中国人民币黄金基准", unit: "元/克", color: T.au99 },
+    { id: "cn_gold_etf_price" as const, selector: "518880", title: "黄金ETF 518880", sub: "华安黄金ETF · 市场价格", unit: "元/份", color: T.gold },
+  ];
+  const selected = series.find((item) => item.id === seriesId) ?? series[1];
+  const points = (d.charts.find((chart) => chart.seriesId === selected.id)?.points ?? []) as VPoint[];
   return (
     <Card className="min-w-0 p-3 sm:p-5">
-      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-1">
-        <span className="text-sm font-semibold">XAU/USD 走势</span>
-        <span className="text-[12px] text-[#a8a193]">独立图表 · USD/oz</span>
+      <div className="flex flex-wrap items-baseline justify-between gap-1">
+        <div><span className="text-sm font-semibold">核心黄金走势</span><span className="ml-2 text-[12px] text-[#a8a193]">GLOBAL → CHINA → INVEST</span></div>
+        <span className="text-[12px] text-[#a8a193]">{selected.title} · {selected.unit}</span>
       </div>
-      <V4AreaChart points={points} color={T.gold} unit="USD/oz" defaultRange="1Y" heightClassName="h-[190px] lg:h-[230px]" />
+      <div className="mt-2 grid grid-cols-3 rounded-lg border bg-[#faf8f2] p-1" style={{ borderColor: T.border }} aria-label="核心黄金走势数据系列">
+        {series.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setSeriesId(item.id)}
+            className={`min-w-0 rounded-md px-1.5 py-2 text-center text-[12px] font-semibold transition sm:text-[13px] ${seriesId === item.id ? "bg-white text-[#7a4f18] shadow-sm" : "text-[#7d766a] hover:text-[#2b2a26]"}`}
+            aria-pressed={seriesId === item.id}
+          >
+            {item.selector}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex items-baseline justify-between gap-2">
+        <div className="min-w-0"><div className="truncate text-[13px] font-semibold">{selected.title}</div><div className="truncate text-[11px] text-[#a8a193]">{selected.sub}</div></div>
+        <span className="shrink-0 rounded px-1.5 py-px text-[11px]" style={{ background: T.goldSoft, color: T.gold }}>默认 Au99.99</span>
+      </div>
+      <V4AreaChart key={seriesId} points={points} color={selected.color} unit={selected.unit} defaultRange="1Y" heightClassName="h-[190px] lg:h-[270px]" />
     </Card>
   );
 }
@@ -225,11 +263,11 @@ function CnEtfInvestorCard({ data: d }: { data: DesignData }) {
       <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2"><span className="font-mono text-3xl font-bold" style={{ color: T.gold }}>{fmt(etf.market_close, 3)}</span><span className="text-[13px] text-[#7d766a]">元/份</span><span className="ml-auto font-mono text-lg font-bold" style={{ color: upDown(etf.daily_return_pct) }}>{pct(etf.daily_return_pct)}</span></div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
         <InvestorMetric label="官方 NAV" value={etf.official_nav === null ? "—" : `${fmt(etf.official_nav, 4)} 元`} note={etf.nav_date ?? "暂无日期"} />
-        <InvestorMetric label="正式同日折溢价" value={etf.formal_premium_available ? pct(etf.premium_discount_pct) : "暂无正式值"} note={etf.formal_premium_available ? "市场价与NAV同日" : etf.alignment_status === "nav_lagged" ? "数据日期未对齐" : "暂无同日市场价与NAV"} valueColor={etf.formal_premium_available ? upDown(etf.premium_discount_pct) : T.faint} />
+        <InvestorMetric label="正式同日折溢价" value={etf.formal_premium_available ? pct(etf.premium_discount_pct) : "暂无正式值"} note={premiumExplanation(etf.premium_discount_pct, etf.formal_premium_available, etf.alignment_status)} valueColor={etf.formal_premium_available ? upDown(etf.premium_discount_pct) : T.faint} />
         <InvestorMetric label="20D 份额变化" value={pct(etf.shares_change_windows_pct["20D"])} valueColor={upDown(etf.shares_change_windows_pct["20D"])} />
-        <InvestorMetric label="20D Tracking" value={pp(tracking20?.tracking_difference_pp)} note={tracking20 ? `样本 ${tracking20.sample_count ?? "—"}` : "数据不足"} valueColor={upDown(tracking20?.tracking_difference_pp)} />
+        <InvestorMetric label="20D Tracking" value={pp(tracking20?.tracking_difference_pp)} note={trackingExplanation(tracking20?.tracking_difference_pp)} valueColor={upDown(tracking20?.tracking_difference_pp)} />
       </div>
-      <ResponsiveDisclosure label="规模、份额与Tracking详情">
+      <ResponsiveDisclosure label="查看规模、份额与Tracking详情">
         <div className="grid grid-cols-2 gap-2 text-[12px]">
           <InvestorMetric label="Estimated AUM" value={`${compactCny(etf.estimated_aum_cny)} 元`} />
           <InvestorMetric label="日度总份额" value={`${fmt(etf.total_shares)} 亿份`} note={etf.shares_date ?? "—"} />
@@ -259,13 +297,71 @@ function CnyTransmissionCard({ data: d }: { data: DesignData }) {
   );
 }
 
+function MobileIntlComparison({ data: d }: { data: DesignData }) {
+  const rows = [
+    { label: "国际黄金 XAU/USD", values: d.comparison.gold },
+    { label: "Au99.99", values: d.comparison.au99 },
+    { label: "USD/CNY", values: d.comparison.usdcny },
+  ];
+  const valueFor = (values: typeof d.comparison.gold, window: string) => values.find((item) => item.label === window)?.changePct;
+  return (
+    <Card className="p-4 md:hidden">
+      <div className="flex items-baseline justify-between gap-2"><div className="text-sm font-semibold">国际黄金 vs 国内黄金摘要</div><span className="text-[12px] text-[#a8a193]">默认 · 20D</span></div>
+      <div className="mt-3 space-y-1">
+        {rows.map((row) => <div key={row.label} className="flex items-center justify-between gap-3 rounded-lg bg-[#faf8f2] px-3 py-2"><span className="min-w-0 text-[13px] text-[#575249]">{row.label}</span><span className="shrink-0 font-mono text-sm font-bold" style={{ color: upDown(valueFor(row.values, "20D")) }}>{pct(valueFor(row.values, "20D"))}</span></div>)}
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-[#faf8f2] px-3 py-2"><span className="text-[13px] text-[#575249]">国内溢价 / 折价</span><span className="shrink-0 font-mono text-sm font-bold" style={{ color: upDown(d.theoretical.latest?.premiumPct) }}>{pct(d.theoretical.latest?.premiumPct)}</span></div>
+      </div>
+      <p className="mt-3 rounded-lg border-l-2 bg-[#faf8f2] px-3 py-2 text-[12px] leading-relaxed text-[#5c564b]" style={{ borderColor: T.gold }}>{d.comparison.explanation}</p>
+      <ResponsiveDisclosure label="查看5D / 60D完整对比">
+        <div className="space-y-2">
+          {rows.map((row) => (
+            <div key={row.label} className="rounded-lg border p-2.5" style={{ borderColor: T.border }}>
+              <div className="text-[12px] font-semibold">{row.label}</div>
+              <div className="mt-1 grid grid-cols-3 gap-1 text-center">
+                {(["5D", "20D", "60D"] as const).map((window) => <div key={window}><div className="text-[11px] text-[#a8a193]">{window}</div><div className="font-mono text-[12px] font-bold" style={{ color: upDown(valueFor(row.values, window)) }}>{pct(valueFor(row.values, window))}</div></div>)}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 rounded-lg bg-[#faf8f2] p-2.5 text-[12px] leading-relaxed text-[#7d766a]">
+          国际折算参考 {d.theoretical.latest ? `${fmt(d.theoretical.latest.theoretical)} 元/克` : "—"}；Au99.99 {d.theoretical.latest?.au99 == null ? "—" : `${fmt(d.theoretical.latest.au99)} 元/克`}。{d.comparison.ruleText}
+        </div>
+      </ResponsiveDisclosure>
+    </Card>
+  );
+}
+
+function MobileDataProvenance({ data: d }: { data: DesignData }) {
+  const latest = [...d.series].sort((a, b) => a.lastFetchedAt.localeCompare(b.lastFetchedAt)).at(-1)?.lastFetchedAt;
+  return (
+    <Card className="p-4 md:hidden">
+      <div className="grid grid-cols-2 gap-2 text-[12px]">
+        <InvestorMetric label="数据状态" value="正常" valueColor={T.fav} />
+        <InvestorMetric label="数据系列" value={`${d.series.length} 条`} />
+      </div>
+      <div className="mt-2 rounded-lg bg-[#faf8f2] px-3 py-2 text-[12px]"><span className="text-[#a8a193]">最近抓取</span><div className="mt-0.5 font-mono font-semibold text-[#575249]">{latest ? new Date(latest).toLocaleString("zh-CN", { hour12: false }) : "—"}</div></div>
+      <ResponsiveDisclosure label="查看全部数据源">
+        <div className="space-y-2">
+          {d.series.map((series) => (
+            <div key={series.name} className="rounded-lg border p-3" style={{ borderColor: T.border }}>
+              <div className="font-medium text-[#2b2a26]">{series.name}{series.isProxy ? "（代理）" : ""}</div>
+              <div className="mt-1 text-[12px] leading-relaxed text-[#7d766a]">{series.source}</div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[#a8a193]"><span>频率: {series.frequency}</span><span>最新: {series.lastObservationDate ?? "—"}</span><span className="col-span-2">抓取: {series.lastFetchedAt ? new Date(series.lastFetchedAt).toLocaleString("zh-CN", { hour12: false }) : "—"}</span>{series.frequency === "quarterly" && <span className="col-span-2">低频数据，非日度</span>}</div>
+            </div>
+          ))}
+        </div>
+      </ResponsiveDisclosure>
+      <p className="mt-2 text-[11px] leading-relaxed text-[#a8a193]">数据日期与抓取时间严格区分；全部为真实数据快照，无 Mock。</p>
+    </Card>
+  );
+}
+
 export default function RefinedV4Preview({ data: d, iconExists }: { data: DesignData; iconExists: boolean }) {
   const [openRules, setOpenRules] = useState<string | null>(null);
   const [showIntlDetail, setShowIntlDetail] = useState(false);
   const [showTempDetail, setShowTempDetail] = useState(false);
   const [chartTab, setChartTab] = useState("cn");
 
-  const goldPoints = (d.charts.find((c) => c.seriesId === "gold_price")?.points ?? []) as VPoint[];
   const byId = (id: string) => (d.charts.find((c) => c.seriesId === id)?.points ?? []) as VPoint[];
 
   const macroReal = d.macros.find((m) => m.seriesId === "us10y_real");
@@ -357,7 +453,7 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             {/* Mobile 用 contents 让两列子组件统一参与 order；Desktop 恢复 60/40 两列 */}
             <div className="contents lg:col-span-3 lg:flex lg:flex-col lg:gap-4">
               <div className="order-1 lg:order-1"><InternationalGoldSummary data={d} /></div>
-              <div className="order-5 lg:order-2"><InternationalGoldChart points={goldPoints} /></div>
+              <div className="order-5 lg:order-2"><CoreGoldTrendChart data={d} /></div>
               <div className="order-6 lg:order-3">
                 <MacroEnvironmentStrip dxy={macroDxy} real={macroReal} nominal={macroNominal} />
               </div>
@@ -474,7 +570,7 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
           <SectionTitle k="04 · DRIVERS" t="黄金驱动面板 & 市场温度" />
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-5">
             {/* 驱动面板(左3/5 ≈ 60%, 盒状条目) */}
-            <div className="space-y-5 lg:col-span-3">
+            <div className="order-2 space-y-4 lg:order-1 lg:col-span-3 lg:space-y-5">
               {(["macro", "flow", "structure", "trend"] as const).map((layer) => {
                 const rows = d.drivers.filter((r) => r.layer === layer);
                 const label = rows[0]?.layerLabel ?? layer;
@@ -484,26 +580,26 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
                       {label}
                       {layer === "trend" && <span className="ml-2 font-normal normal-case text-[#a8a193]">(结果变量, 不参与驱动计分)</span>}
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5 lg:space-y-2">
                       {rows.map((r) => {
                         const badge = stanceBadge(r.stance);
                         const open = openRules === r.layer + r.title;
                         return (
-                          <div key={r.layer + r.title} className="rounded-lg border px-4 py-3" style={{ background: T.card, borderColor: T.border }}>
-                            <div className="flex items-start gap-3">
-                              <span className={`mt-0.5 inline-flex w-16 shrink-0 justify-center rounded px-1 py-0.5 text-[13px] font-bold ${badge.cls}`}>{badge.text}</span>
+                          <div key={r.layer + r.title} className="rounded-lg border px-3 py-2.5 lg:px-4 lg:py-3" style={{ background: T.card, borderColor: T.border }}>
+                            <div className="flex items-start gap-2.5 lg:gap-3">
+                              <span className={`mt-0.5 inline-flex w-14 shrink-0 justify-center rounded px-1 py-0.5 text-[12px] font-bold lg:w-16 lg:text-[13px] ${badge.cls}`}>{badge.text}</span>
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                                  <span className="text-base font-semibold text-[#2b2a26]">{r.title}</span>
-                                  <span className="text-[15px] text-[#4a463d]">{r.behavior}</span>
+                                  <span className="text-sm font-semibold text-[#2b2a26] lg:text-base">{r.title}</span>
+                                  <span className="text-[13px] text-[#4a463d] lg:text-[15px]">{r.behavior}</span>
                                   {r.isConfirmation && <span className="rounded px-1.5 py-px text-[13px]" style={{ background: "#e8f1fa", color: T.confirm }}>辅助确认</span>}
                                 </div>
-                                <div className="mt-1 text-sm text-[#5c564b]">→ {r.implication}</div>
-                                <div className="mt-1.5 font-mono text-[13px] text-[#6b6459]">依据: {r.detail}</div>
+                                <div className="mt-1 text-[13px] text-[#5c564b] lg:text-sm">→ {r.implication}</div>
+                                <div className="mt-1.5 hidden font-mono text-[13px] text-[#6b6459] lg:block">依据: {r.detail}</div>
                                 <button type="button" onClick={() => setOpenRules(open ? null : r.layer + r.title)} className="mt-1 text-[13px] font-medium text-[#2f7fb8] hover:underline">
-                                  {open ? "收起说明 ▲" : "查看规则说明 ▼"}
+                                  {open ? "收起详细依据 ▲" : "查看详细依据 ▼"}
                                 </button>
-                                {open && <div className="mt-1.5 border-t pt-2 text-[13px] leading-relaxed text-[#6b6459]" style={{ borderColor: T.border }}>{ruleDescription(r)}</div>}
+                                {open && <div className="mt-1.5 space-y-1.5 border-t pt-2 text-[13px] leading-relaxed text-[#6b6459]" style={{ borderColor: T.border }}><div className="font-mono lg:hidden">依据: {r.detail}</div><div>{ruleDescription(r)}</div></div>}
                               </div>
                             </div>
                           </div>
@@ -516,7 +612,7 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             </div>
 
             {/* 市场温度(右2/5 ≈ 40%, 摘要总览卡) */}
-            <div className="space-y-4 lg:col-span-2">
+            <div className="order-1 space-y-4 lg:order-2 lg:col-span-2">
               <Card className="p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">黄金市场温度</div>
@@ -630,7 +726,8 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
         {/* ===== 第六屏: 国际 vs 国内黄金 ===== */}
         <section>
           <SectionTitle k="06 · INTL vs CN" t="国际黄金 vs 国内黄金" sub="国际金价 + 人民币汇率 → 国内人民币黄金表现" />
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-5">
+          <MobileIntlComparison data={d} />
+          <div className="hidden grid-cols-1 items-start gap-5 md:grid lg:grid-cols-5">
             <Card className="p-5 lg:col-span-3">
               <table className="w-full text-left text-[13px]">
                 <thead>
@@ -705,7 +802,8 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
         {/* ===== 底部: 数据来源与状态 ===== */}
         <section>
           <SectionTitle k="07 · DATA" t="数据来源与状态" />
-          <Card className="overflow-x-auto p-4">
+          <MobileDataProvenance data={d} />
+          <Card className="hidden overflow-x-auto p-4 md:block">
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead>
                 <tr className="border-b text-[13px] uppercase tracking-wider text-[#a8a193]" style={{ borderColor: T.border }}>
