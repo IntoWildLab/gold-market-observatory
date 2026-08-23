@@ -3,7 +3,6 @@
 import { useState } from "react";
 import type { DesignData } from "@/lib/design-data";
 import { V4AreaChart, V4Donut, V4ShareStack, V4Compare, type VPoint } from "./charts/V4Chart";
-import { fmtNumber } from "@/lib/format";
 
 /**
  * refined-v4 —— 浅暖白金融风(仅 /design/refined-v4 预览)
@@ -60,6 +59,206 @@ function SectionTitle({ k, t, sub }: { k: string; t: string; sub?: string }) {
   );
 }
 
+const pp = (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(2)}pp`);
+const compactCny = (v: number | null | undefined) => (
+  v === null || v === undefined ? "—" : new Intl.NumberFormat("zh-CN", { notation: "compact", maximumFractionDigits: 2 }).format(v)
+);
+
+function ResponsiveDisclosure({ label, children, desktopOpen = false }: { label: string; children: React.ReactNode; desktopOpen?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3 border-t pt-2.5" style={{ borderColor: T.border }}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={`flex w-full items-center justify-between text-left text-[13px] font-medium text-[#6b6459] hover:text-[#2b2a26] ${desktopOpen ? "lg:hidden" : ""}`}
+        aria-expanded={open}
+      >
+        <span>{label}</span><span aria-hidden>{open ? "收起 ▲" : "展开 ▼"}</span>
+      </button>
+      <div className={`${open ? "block" : "hidden"} ${desktopOpen ? "lg:block" : ""} mt-2`}>{children}</div>
+    </div>
+  );
+}
+
+function InternationalGoldSummary({ data: d }: { data: DesignData }) {
+  const r20 = d.gold.periodReturns.find((row) => row.window === "20D");
+  const secondary = d.gold.periodReturns.filter((row) => !["1D", "20D"].includes(row.window));
+  return (
+    <Card className="min-w-0 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-base font-semibold">国际黄金 XAU/USD</span>
+            <span className="rounded px-1.5 py-px text-[13px]" style={{ background: T.goldSoft, color: T.gold }}>GLOBAL · 现货</span>
+          </div>
+          <div className="mt-1 truncate text-[13px] text-[#a8a193]">{d.gold.latestSpot?.as_of_date ?? "—"} · {d.gold.latestSpot?.source.name ?? "—"}</div>
+        </div>
+        <span className="hidden rounded px-1.5 py-px text-[13px] text-[#7d766a] sm:inline" style={{ background: "#f0ede6" }}>历史: LBMA 定盘</span>
+      </div>
+      <div className="mt-3 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-1">
+        <span className="min-w-0 font-mono text-[2.35rem] font-bold leading-none sm:text-5xl" style={{ color: T.gold }}>{fmt(d.gold.latestSpot?.price_usd)}</span>
+        <span className="mb-0.5 font-mono text-lg font-bold" style={{ color: upDown(d.gold.dailyChangePct) }}>
+          {d.gold.dailyChangePct === null ? "—" : `${d.gold.dailyChangePct >= 0 ? "▲" : "▼"} ${pct(d.gold.dailyChangePct)}`}
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-3 divide-x rounded-lg border py-2 text-center" style={{ borderColor: T.border }}>
+        <div className="px-2">
+          <div className="text-[12px] text-[#a8a193]">近20日</div>
+          <div className="font-mono text-[15px] font-bold" style={{ color: upDown(r20?.changePct) }}>{pct(r20?.changePct)}</div>
+        </div>
+        <div className="px-2">
+          <div className="text-[12px] text-[#a8a193]">趋势</div>
+          <div className="truncate text-[15px] font-bold" style={{ color: upDown(d.gold.trend.changePct) }}>{d.gold.trend.label}</div>
+        </div>
+        <div className="px-2">
+          <div className="text-[12px] text-[#a8a193]">一年位置</div>
+          <div className="truncate text-[15px] font-bold">{d.gold.yearPos.label} {d.gold.yearPos.percentile === null ? "" : `${d.gold.yearPos.percentile.toFixed(0)}%`}</div>
+        </div>
+      </div>
+      <ResponsiveDisclosure label="更多周期与来源" desktopOpen>
+        <div className="grid grid-cols-3 gap-2">
+          {secondary.map((row) => (
+            <div key={row.window} className="rounded-lg bg-[#faf8f2] px-2 py-1.5 text-center">
+              <div className="text-[12px] text-[#a8a193]">{row.label}</div>
+              <div className="font-mono text-sm font-bold" style={{ color: upDown(row.changePct) }}>{pct(row.changePct)}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">当前价来源: {d.gold.latestSpot?.source.name ?? "—"}；历史序列: {d.gold.source}。</p>
+      </ResponsiveDisclosure>
+    </Card>
+  );
+}
+
+function InternationalGoldChart({ points }: { points: VPoint[] }) {
+  return (
+    <Card className="min-w-0 p-3 sm:p-5">
+      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-1">
+        <span className="text-sm font-semibold">XAU/USD 走势</span>
+        <span className="text-[12px] text-[#a8a193]">独立图表 · USD/oz</span>
+      </div>
+      <V4AreaChart points={points} color={T.gold} unit="USD/oz" defaultRange="1Y" heightClassName="h-[190px] lg:h-[230px]" />
+    </Card>
+  );
+}
+
+type MacroItem = DesignData["macros"][number] | undefined;
+function MacroEnvironmentStrip({ dxy, real, nominal }: { dxy: MacroItem; real: MacroItem; nominal: MacroItem }) {
+  const rows = [
+    { label: "美元指数代理", item: dxy, unit: "", note: "人民币黄金外部环境" },
+    { label: "10Y实际利率", item: real, unit: "%", note: "核心" },
+    { label: "10Y名义收益率", item: nominal, unit: "%", note: "辅助确认" },
+  ];
+  return (
+    <Card className="p-4">
+      <div className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-[#a8a193]">Macro Environment · 宏观辅助环境</div>
+      <div className="grid grid-cols-1 gap-0 sm:grid-cols-3 sm:gap-3">
+        {rows.map((row, index) => (
+          <div key={row.label} className={`flex items-center justify-between py-2 sm:block sm:rounded-lg sm:bg-[#faf8f2] sm:px-3 ${index ? "border-t sm:border-0" : ""}`} style={{ borderColor: T.border }}>
+            <div className="text-[13px] text-[#7d766a]">{row.label} <span className="text-[11px] text-[#a8a193]">{row.note}</span></div>
+            <div className="font-mono text-base font-bold">{fmt(row.item?.value)}{row.unit} <span className="text-sm" style={{ color: upDown(row.item?.change) }}>{row.item?.changeLabel ?? "—"}</span></div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function Au9999BenchmarkCard({ data: d }: { data: DesignData }) {
+  const daily = d.china.au99.returns.find((row) => row.window === "1D")?.changePct ?? null;
+  const r20 = d.china.au99.returns.find((row) => row.window === "20D")?.changePct ?? null;
+  return (
+    <Card className="min-w-0 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div><div className="text-base font-semibold">Au99.99</div><div className="text-[12px] font-medium" style={{ color: T.au99 }}>中国人民币黄金基准</div></div>
+        <div className="text-right text-[12px] text-[#a8a193]">{d.china.au99.date ?? "—"}<br />上海黄金交易所</div>
+      </div>
+      <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
+        <span className="font-mono text-3xl font-bold" style={{ color: T.au99 }}>{fmt(d.china.au99.value)}</span>
+        <span className="text-[13px] text-[#7d766a]">元/克</span>
+        <span className="ml-auto font-mono text-lg font-bold" style={{ color: upDown(daily) }}>{pct(daily)}</span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-lg bg-[#faf8f2] px-3 py-2"><div className="text-[12px] text-[#a8a193]">近20日表现</div><div className="font-mono font-bold" style={{ color: upDown(r20) }}>{pct(r20)}</div></div>
+        <div className="rounded-lg bg-[#faf8f2] px-3 py-2"><div className="text-[12px] text-[#a8a193]">国内定价偏离</div><div className="font-mono font-bold" style={{ color: upDown(d.theoretical.latest?.premiumPct) }}>{pct(d.theoretical.latest?.premiumPct)}</div></div>
+      </div>
+      <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">国内定价偏离为同日理论折算研究参考，不代表合理价格或套利信号。</p>
+    </Card>
+  );
+}
+
+function ChinaGoldAttributionCard({ data: d }: { data: DesignData }) {
+  const attribution = d.china.goldAttribution;
+  const row = attribution.windows["20D"];
+  const factors = [
+    { label: "国际黄金贡献", value: row?.gold_contribution_pp },
+    { label: "汇率贡献", value: row?.fx_contribution_pp },
+    { label: "国内定价偏离贡献", value: row?.deviation_contribution_pp },
+  ];
+  return (
+    <Card className="min-w-0 p-4">
+      <div className="flex items-start justify-between gap-2"><div><div className="text-sm font-semibold">人民币黄金收益贡献</div><div className="text-[12px] text-[#a8a193]">默认窗口 · 20D</div></div><div className="text-right"><div className="text-[11px] text-[#a8a193]">Au99.99 实际收益</div><div className="font-mono text-lg font-bold" style={{ color: upDown(row?.actual_au99_return_pct) }}>{pct(row?.actual_au99_return_pct)}</div></div></div>
+      {row ? (
+        <div className="mt-3 space-y-1.5">
+          {factors.map((factor) => <div key={factor.label} className="flex min-w-0 items-center justify-between gap-3 rounded-lg border-l-2 bg-[#faf8f2] px-3 py-2" style={{ borderColor: factor.value === null || factor.value === undefined ? T.faint : factor.value >= 0 ? T.gold : T.down }}><span className="min-w-0 text-[13px] text-[#575249]">{factor.label}</span><span className="shrink-0 font-mono text-sm font-bold" style={{ color: upDown(factor.value) }}>{pp(factor.value)}</span></div>)}
+        </div>
+      ) : <p className="mt-3 text-[13px] text-[#a8a193]">20D 共同样本不足，暂无法展示归因。</p>}
+      <ResponsiveDisclosure label="查看5D / 60D与方法说明">
+        <div className="grid grid-cols-2 gap-2">
+          {(["5D", "60D"] as const).map((window) => { const item = attribution.windows[window]; return <div key={window} className="rounded-lg bg-[#faf8f2] p-2 text-[12px]"><div className="font-semibold">{window} · 实际 {pct(item?.actual_au99_return_pct)}</div><div className="mt-1 text-[#7d766a]">黄金 {pp(item?.gold_contribution_pp)}<br />汇率 {pp(item?.fx_contribution_pp)}<br />偏离 {pp(item?.deviation_contribution_pp)}</div></div>; })}
+        </div>
+        <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">方法: {row?.interaction_method ?? "—"}；贡献单位为百分点(pp)，允许为负；不表示百分比组成占比。{row ? ` 对齐日 ${row.start_date} → ${row.end_date}` : ""}</p>
+      </ResponsiveDisclosure>
+    </Card>
+  );
+}
+
+function CnEtfInvestorCard({ data: d }: { data: DesignData }) {
+  const etf = d.invest.chinaGoldEtf;
+  const tracking20 = etf.tracking.windows["20D"];
+  const tracking5 = etf.tracking.windows["5D"];
+  const tracking60 = etf.tracking.windows["60D"];
+  return (
+    <Card className="min-w-0 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2"><div><div className="text-base font-semibold">黄金ETF 518880</div><div className="text-[12px] font-medium text-[#7a4f18]">INVEST · 投资工具摘要</div></div><div className="text-right text-[12px] text-[#a8a193]">市场价 {etf.market_close_date ?? "—"}<br />华安黄金ETF · 非推荐</div></div>
+      <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2"><span className="font-mono text-3xl font-bold" style={{ color: T.gold }}>{fmt(etf.market_close, 3)}</span><span className="text-[13px] text-[#7d766a]">元/份</span><span className="ml-auto font-mono text-lg font-bold" style={{ color: upDown(etf.daily_return_pct) }}>{pct(etf.daily_return_pct)}</span></div>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+        <InvestorMetric label="官方 NAV" value={etf.official_nav === null ? "—" : `${fmt(etf.official_nav, 4)} 元`} note={etf.nav_date ?? "暂无日期"} />
+        <InvestorMetric label="正式同日折溢价" value={etf.formal_premium_available ? pct(etf.premium_discount_pct) : "暂无正式值"} note={etf.formal_premium_available ? "市场价与NAV同日" : etf.alignment_status === "nav_lagged" ? "数据日期未对齐" : "暂无同日市场价与NAV"} valueColor={etf.formal_premium_available ? upDown(etf.premium_discount_pct) : T.faint} />
+        <InvestorMetric label="20D 份额变化" value={pct(etf.shares_change_windows_pct["20D"])} valueColor={upDown(etf.shares_change_windows_pct["20D"])} />
+        <InvestorMetric label="20D Tracking" value={pp(tracking20?.tracking_difference_pp)} note={tracking20 ? `样本 ${tracking20.sample_count ?? "—"}` : "数据不足"} valueColor={upDown(tracking20?.tracking_difference_pp)} />
+      </div>
+      <ResponsiveDisclosure label="规模、份额与Tracking详情">
+        <div className="grid grid-cols-2 gap-2 text-[12px]">
+          <InvestorMetric label="Estimated AUM" value={`${compactCny(etf.estimated_aum_cny)} 元`} />
+          <InvestorMetric label="日度总份额" value={`${fmt(etf.total_shares)} 亿份`} note={etf.shares_date ?? "—"} />
+          <InvestorMetric label="5D / 60D份额" value={`${pct(etf.shares_change_windows_pct["5D"])} / ${pct(etf.shares_change_windows_pct["60D"])}`} />
+          <InvestorMetric label="60D Tracking" value={pp(tracking60?.tracking_difference_pp)} />
+          <InvestorMetric label="5D Tracking" value={pp(tracking5?.tracking_difference_pp)} />
+          <InvestorMetric label="MarketEffect" value={`${compactCny(etf.estimated_market_effect_cny)} 元`} />
+          <InvestorMetric label="ShareEffect" value={`${compactCny(etf.estimated_share_flow_cny)} 元`} />
+          <InvestorMetric label="分解闭合残差" value={`${fmt(etf.decomposition_closure_residual_cny, 2)} 元`} />
+        </div>
+        <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">Tracking 使用官方 NAV 对比 Au99.99；Au99.99 为中国黄金现货代理基准（benchmark_is_proxy = true）。所有数值直接来自 DesignData，不在组件内重算。</p>
+      </ResponsiveDisclosure>
+    </Card>
+  );
+}
+
+function InvestorMetric({ label, value, note, valueColor = T.text }: { label: string; value: string; note?: string; valueColor?: string }) {
+  return <div className="min-w-0 rounded-lg bg-[#faf8f2] px-3 py-2"><div className="text-[#a8a193]">{label}</div><div className="break-words font-mono text-sm font-bold" style={{ color: valueColor }}>{value}</div>{note && <div className="mt-0.5 text-[11px] text-[#a8a193]">{note}</div>}</div>;
+}
+
+function CnyTransmissionCard({ data: d }: { data: DesignData }) {
+  const r20 = d.china.usdcny.returns.find((row) => row.window === "20D")?.changePct;
+  return (
+    <Card className="p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="text-sm font-semibold">USD/CNY</div><div className="text-[12px] text-[#a8a193]">人民币黄金传导辅助指标</div></div><div className="text-right"><div className="font-mono text-xl font-bold" style={{ color: T.usd }}>{fmt(d.china.usdcny.value, 4)}</div><div className="text-[12px] text-[#a8a193]">20D {pct(r20)} · 上升=人民币走弱</div></div></div>
+    </Card>
+  );
+}
+
 export default function RefinedV4Preview({ data: d, iconExists }: { data: DesignData; iconExists: boolean }) {
   const [openRules, setOpenRules] = useState<string | null>(null);
   const [showIntlDetail, setShowIntlDetail] = useState(false);
@@ -100,28 +299,28 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
     <div className="relative left-1/2 w-screen min-h-screen -translate-x-1/2 text-[#2b2a26]" style={{ background: T.bg }}>
       {/* ===== Header(品牌图标 + 站名 + 副标题 + 右侧状态) ===== */}
       <header className="border-b" style={{ borderColor: T.border, background: T.card }}>
-        <div className="mx-auto max-w-[1700px] px-5 py-3.5 lg:px-10">
+        <div className="mx-auto max-w-[1700px] px-4 py-3 sm:px-5 lg:px-10">
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
             <div className="flex items-center gap-3">
               {iconExists ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src="/branding/gold-favicon.png" alt="黄金市场观察站" className="h-8 w-8 rounded-lg" />
+                <img src="/branding/gold-favicon.png" alt="黄金市场观察站" className="h-7 w-7 rounded-lg sm:h-8 sm:w-8" />
               ) : (
                 <span className="text-xl font-bold" style={{ color: T.gold }}>◆</span>
               )}
               <div>
                 <div className="flex items-baseline gap-2">
-                  <h1 className="text-lg font-bold tracking-wide text-[#2b2a26]">黄金市场观察站</h1>
-                  <span className="text-[13px] tracking-wide text-[#a8a193]">Gold Market Observatory</span>
+                  <h1 className="text-base font-bold tracking-wide text-[#2b2a26] sm:text-lg">黄金市场观察站</h1>
+                  <span className="hidden text-[13px] tracking-wide text-[#a8a193] sm:inline">Gold Market Observatory</span>
                 </div>
                 {/* 副标题说明(用户指定保留) */}
-                <p className="mt-0.5 text-[13px] leading-relaxed text-[#7d766a]">
+                <p className="mt-0.5 hidden text-[13px] leading-relaxed text-[#7d766a] md:block">
                   黄金价格 · 美元 · 实际利率 · 美债收益率 · ETF资金流 · 央行购金 —— 真实数据，可解释，可运行
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-1 text-right text-[13px] text-[#7d766a]">
-              <span>
+            <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 text-left text-[12px] text-[#7d766a] sm:w-auto sm:justify-end sm:text-right sm:text-[13px]">
+              <span className="hidden sm:inline">
                 当前 <span className="font-mono font-semibold text-[#2b2a26]">{new Date().toLocaleDateString("zh-CN")}</span>
               </span>
               <span>
@@ -135,111 +334,12 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1700px] space-y-9 px-5 py-6 lg:px-10">
+      <main className="mx-auto max-w-[1700px] space-y-8 px-4 py-5 sm:px-5 lg:space-y-9 lg:px-10 lg:py-6">
         {/* ===== 第一屏: 左国际黄金(60%) / 右中国黄金(40%) ===== */}
         <section className="space-y-4">
-          <SectionTitle k="01 · TODAY" t="核心市场概览" sub="国际黄金 + 中国黄金" />
+          <SectionTitle k="01 · TODAY" t="今日黄金状态" sub="GLOBAL → CHINA → INVEST" />
 
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-5">
-            {/* 左: 国际黄金(略缩图, 让位右栏) */}
-            <Card className="p-5 lg:col-span-3">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base font-semibold text-[#2b2a26]">国际黄金 XAU/USD</span>
-                    <span className="rounded px-1.5 py-px text-[13px]" style={{ background: T.goldSoft, color: T.gold }}>现货</span>
-                    <span className="rounded px-1.5 py-px text-[13px]" style={{ background: "#f0ede6", color: T.muted }}>历史: LBMA 定盘</span>
-                  </div>
-                  <div className="mt-1 text-[13px] text-[#a8a193]">{d.gold.latestSpot?.as_of_date ?? ""} · {d.gold.latestSpot?.source.name ?? ""}</div>
-                </div>
-                <div className="text-right text-[13px] text-[#a8a193]">
-                  <div>一年位置: <b className="font-mono text-[#2b2a26]">{d.gold.yearPos.label}</b> ({d.gold.yearPos.percentile?.toFixed(0)}%)</div>
-                  <div>趋势: <b className="font-mono" style={{ color: d.gold.trend.changePct === null ? T.faint : d.gold.trend.changePct >= 0 ? T.up : T.down }}>{d.gold.trend.label}</b></div>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-end gap-x-5 gap-y-1">
-                <span className="font-mono text-5xl font-bold leading-none" style={{ color: T.gold }}>{fmt(d.gold.latestSpot?.price_usd)}</span>
-                <span className="mb-1 font-mono text-xl font-bold" style={{ color: upDown(d.gold.dailyChangePct) }}>
-                  {d.gold.dailyChangePct !== null && `${d.gold.dailyChangePct >= 0 ? "▲" : "▼"} ${pct(d.gold.dailyChangePct)}`}
-                </span>
-                <div className="mb-1 ml-auto flex gap-4">
-                  {d.gold.periodReturns.map((r) => (
-                    <div key={r.window} className="text-center">
-                      <div className="text-[13px] uppercase tracking-wider text-[#a8a193]">{r.window === "1D" ? "当日" : r.label}</div>
-                      <div className="font-mono text-base font-bold" style={{ color: upDown(r.changePct) }}>{pct(r.changePct)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 宏观三指标(内联紧凑) */}
-              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t pt-2.5" style={{ borderColor: T.border }}>
-                <span className="text-[13px] text-[#7d766a]">
-                  美元指数 <b className="font-mono text-[#2b2a26]">{fmt(macroDxy?.value)}</b>
-                  <span className="ml-1 font-mono" style={{ color: upDown(macroDxy?.change) }}>{macroDxy?.changeLabel ?? "—"}</span>
-                  <span className="ml-1 text-[13px] text-[#a8a193]">(代理)</span>
-                </span>
-                <span className="text-[13px] text-[#7d766a]">
-                  10Y实际利率 <b className="font-mono text-[#2b2a26]">{fmt(macroReal?.value)}%</b>
-                  <span className="ml-1 font-mono" style={{ color: upDown(macroReal?.change) }}>{macroReal?.changeLabel ?? "—"}</span>
-                  <span className="ml-1 rounded px-1 text-[13px]" style={{ background: "#efe9fb", color: T.real }}>核心</span>
-                </span>
-                <span className="text-[13px] text-[#7d766a]">
-                  10Y名义 <b className="font-mono text-[#8a857a]">{fmt(macroNominal?.value)}%</b>
-                  <span className="ml-1 rounded px-1 text-[13px]" style={{ background: "#f0ede6", color: T.muted }}>辅助确认</span>
-                </span>
-              </div>
-
-              {/* 国际金价主图(略缩, 仍清晰) */}
-              <div className="mt-3">
-                <V4AreaChart points={goldPoints} color={T.gold} unit="USD/oz" height={230} defaultRange="1Y" />
-              </div>
-            </Card>
-
-            {/* 右: 中国黄金(旧版三卡片风格) */}
-            <div className="space-y-4 lg:col-span-2">
-              <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">中国黄金 · 人民币计价</div>
-              <ChinaCard
-                title="Au99.99"
-                tag="上海黄金交易所"
-                value={fmt(d.china.au99.value, 2)}
-                unit="元/克"
-                daily={d.china.au99.returns[0]?.changePct ?? null}
-                date={d.china.au99.date ?? ""}
-                returns={d.china.au99.returns}
-                source="WGC 汇编自 SGE"
-                note="国内人民币金价参考, 非'国内版 XAU/USD'"
-                color={T.au99}
-              />
-              <ChinaCard
-                title="USD/CNY"
-                tag="美联储 H.10"
-                value={fmt(d.china.usdcny.value, 4)}
-                unit="人民币/美元"
-                daily={d.china.usdcny.changePct ?? null}
-                date={d.china.usdcny.date ?? ""}
-                returns={d.china.usdcny.returns}
-                source="FRED DEXCHUS"
-                note="上升 = 人民币相对美元走弱"
-                color={T.usd}
-              />
-              <ChinaCard
-                title="黄金ETF 518880"
-                tag="华安"
-                value={fmt(d.china.etf.price, 3)}
-                unit="元/份"
-                daily={d.china.etf.dailyChangePct ?? null}
-                date={d.china.etf.date ?? ""}
-                returns={d.china.etf.returns}
-                source="腾讯行情(上交所)"
-                note={`份额 ${fmt(d.china.etf.sharesValue, 2)} 亿份(${d.china.etf.sharesDate}, 季度披露) · 非推荐`}
-                color={T.au99}
-              />
-            </div>
-          </div>
-
-          {/* 状态摘要(清爽) */}
+          {/* 今日状态摘要在所有尺寸都先于三层市场信息 */}
           <div className="rounded-xl border px-4 py-3" style={{ background: "#f2eee3", borderColor: T.border }}>
             <div className="flex flex-wrap items-center gap-2 text-[13px]">
               <span className="font-semibold text-[#7d766a]">状态摘要:</span>
@@ -251,6 +351,24 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             </div>
             <p className="mt-1.5 text-[14px] leading-relaxed text-[#575249]">{d.temperature.composite.summary}</p>
             <p className="mt-1 text-[13px] text-[#7d766a]">判定来自明确规则(近5日/近4周/季度)，详见下方驱动面板；黄金趋势为结果变量，单独展示。</p>
+          </div>
+
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-5 lg:gap-5">
+            {/* Mobile 用 contents 让两列子组件统一参与 order；Desktop 恢复 60/40 两列 */}
+            <div className="contents lg:col-span-3 lg:flex lg:flex-col lg:gap-4">
+              <div className="order-1 lg:order-1"><InternationalGoldSummary data={d} /></div>
+              <div className="order-5 lg:order-2"><InternationalGoldChart points={goldPoints} /></div>
+              <div className="order-6 lg:order-3">
+                <MacroEnvironmentStrip dxy={macroDxy} real={macroReal} nominal={macroNominal} />
+              </div>
+            </div>
+
+            <div className="contents lg:col-span-2 lg:flex lg:flex-col lg:gap-4">
+              <div className="order-2 lg:order-1"><Au9999BenchmarkCard data={d} /></div>
+              <div className="order-4 lg:order-2"><ChinaGoldAttributionCard data={d} /></div>
+              <div className="order-3 lg:order-3"><CnEtfInvestorCard data={d} /></div>
+              <div className="order-7 lg:order-4"><CnyTransmissionCard data={d} /></div>
+            </div>
           </div>
         </section>
 
@@ -640,39 +758,6 @@ function VerdictChip({ label, verdict, trend }: { label: string; verdict: string
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: c }} />
       <span style={{ color: c }}>{label} {verdict}</span>
     </span>
-  );
-}
-
-function ChinaCard({ title, tag, value, unit, daily, date, returns, source, note, color }: {
-  title: string; tag: string; value: string; unit: string; daily: number | null; date: string;
-  returns: Array<{ window: string; changePct: number | null }>; source: string; note?: string; color: string;
-}) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-semibold text-[#2b2a26]">{title}</span>
-          <span className="rounded px-1.5 py-px text-[13px]" style={{ background: "#f0ede6", color: T.muted }}>{tag}</span>
-        </div>
-        <span className="text-[13px] text-[#a8a193]">{date}</span>
-      </div>
-      <div className="mt-1.5 flex items-baseline gap-2">
-        <span className="font-mono text-3xl font-bold" style={{ color }}>{value}</span>
-        <span className="text-[13px] text-[#7d766a]">{unit}</span>
-        <span className="ml-auto font-mono text-lg font-bold" style={{ color: upDown(daily) }}>{pct(daily)}</span>
-      </div>
-      <div className="mt-2 grid grid-cols-4 gap-1 border-t pt-2" style={{ borderColor: T.border }}>
-        {returns.map((r) => (
-          <div key={r.window} className="text-center">
-            <div className="text-[13px] uppercase tracking-wider text-[#a8a193]">{r.window === "1D" ? "当日" : r.window === "5D" ? "5日" : r.window === "20D" ? "20日" : "60日"}</div>
-            <div className="font-mono text-[15px] font-bold" style={{ color: upDown(r.changePct) }}>{pct(r.changePct)}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-1.5 text-[13px] text-[#a8a193]">
-        {note && <span className="mr-2">{note}</span>}来源: {source}
-      </div>
-    </Card>
   );
 }
 

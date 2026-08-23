@@ -49,10 +49,11 @@ interface AreaProps {
   defaultRange?: string;
   fillOpacity?: number;
   bar?: boolean;
+  heightClassName?: string;
 }
 
 /** refined-v4 统一面积/柱图(浅色) */
-export function V4AreaChart({ points, color, unit, height = 240, ranges = ["1M", "3M", "6M", "1Y"], defaultRange, fillOpacity = 0.14, bar }: AreaProps) {
+export function V4AreaChart({ points, color, unit, height = 240, ranges = ["1M", "3M", "6M", "1Y"], defaultRange, fillOpacity = 0.14, bar, heightClassName }: AreaProps) {
   const [range, setRange] = useState(defaultRange ?? ranges[0]);
   const data = useMemo(() => points.slice(-(RANGES[range] ?? 63)), [points, range]);
 
@@ -72,7 +73,7 @@ export function V4AreaChart({ points, color, unit, height = 240, ranges = ["1M",
           ))}
         </div>
       )}
-      <div style={{ height }}>
+      <div className={heightClassName} style={heightClassName ? undefined : { height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
             <defs>
