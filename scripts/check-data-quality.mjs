@@ -1,5 +1,6 @@
 import { appendFile, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { validateSeriesData } from "./data-quality-lib.mjs";
 
 const root = process.cwd();
 const seriesDir = path.join(root, "data", "series");
@@ -9,6 +10,8 @@ const required = [
   "au99_99",
   "usd_cny",
   "cn_gold_etf_price",
+  "cn_gold_etf_nav",
+  "cn_gold_etf_shares_daily",
   "dxy_proxy",
   "us10y_real",
   "us10y_nominal",
@@ -29,6 +32,11 @@ const freshness = {
   weekly: { warnDays: 14, maxDays: 28 },
   monthly: { warnDays: 45, maxDays: 75 },
   quarterly: { warnDays: 150, maxDays: 220 },
+};
+// 上交所 ETF 规模公开查询当前存在约两周批量发布延迟；仍按 daily
+// 校验，只在同一 freshness gate 中放宽硬失败阈值，不伪装成周频。
+const freshnessOverrides = {
+  cn_gold_etf_shares_daily: { warnDays: 10, maxDays: 21 },
 };
 
 const now = new Date();
@@ -70,19 +78,25 @@ for (const id of required) {
   }
 
   let previousDate = "";
+  const seenDates = new Set();
   for (const [index, item] of observations.entries()) {
     if (item?.series !== id) fail(`${id}: observation ${index} has the wrong series id`);
     if (typeof item?.value !== "number" || !Number.isFinite(item.value)) fail(`${id}: observation ${index} has a non-finite value`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(item?.observation_date ?? "")) fail(`${id}: observation ${index} has an invalid date`);
     if (item.observation_date < previousDate) fail(`${id}: observations are not sorted by date`);
+    if (seenDates.has(item.observation_date)) fail(`${id}: duplicate observation date ${item.observation_date}`);
+    seenDates.add(item.observation_date);
     previousDate = item.observation_date;
   }
+  const contract = validateSeriesData(id, data, now);
+  for (const message of contract.errors) fail(message);
+  for (const message of contract.warnings) warn(message);
 
   const latestDate = observations.at(-1)?.observation_date ?? null;
   if (data.last_observation_date !== latestDate) fail(`${id}: last_observation_date does not match the final observation`);
 
   const age = latestDate ? ageInDays(latestDate) : null;
-  const limits = freshness[frequency];
+  const limits = freshnessOverrides[id] ?? freshness[frequency];
   if (age === null) {
     fail(`${id}: latest observation date cannot be evaluated`);
   } else if (age < -2) {

@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.scripts.json && node --test tests/*.test.cjs",
     "data:fetch": "tsc -p tsconfig.scripts.json && node .tmp-pipeline/scripts/fetch-data.js",
     "data:fetch:fred": "tsc -p tsconfig.scripts.json && node .tmp-pipeline/scripts/fetch-data.js --only fred",
     "data:inspect": "tsc -p tsconfig.scripts.json && node .tmp-pipeline/scripts/inspect-data.js",

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-22T22:42:04.294Z",
+  "generated_at": "2026-08-23T06:08:16.050Z",
   "series": [
     {
       "series": "au99_99",
@@ -54,6 +54,19 @@
       "all_real": true
     },
     {
+      "series": "cn_gold_etf_nav",
+      "name": "华安黄金ETF 518880 官方单位净值",
+      "frequency": "daily",
+      "unit": "cny_per_share",
+      "source": "华安基金官方",
+      "requires_api_key": false,
+      "is_proxy_of": null,
+      "observations": 82,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-23T06:08:16.050Z",
+      "all_real": true
+    },
+    {
       "series": "cn_gold_etf_price",
       "name": "国内黄金ETF 518880 收盘价",
       "frequency": "daily",
@@ -77,6 +90,19 @@
       "observations": 55,
       "last_observation_date": "2026-06-30",
       "last_fetched_at": "2026-08-22T22:42:04.294Z",
+      "all_real": true
+    },
+    {
+      "series": "cn_gold_etf_shares_daily",
+      "name": "华安黄金ETF 518880 日度总份额",
+      "frequency": "daily",
+      "unit": "hundred_million_shares",
+      "source": "上海证券交易所",
+      "requires_api_key": false,
+      "is_proxy_of": null,
+      "observations": 81,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-23T06:08:16.050Z",
       "all_real": true
     },
     {

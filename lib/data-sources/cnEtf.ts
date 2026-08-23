@@ -14,7 +14,7 @@
  * - 价格/成交为交易所行情; 成交量为手(1手=100份)。
  */
 
-import { httpGetJson, httpGetTextEncoded, parseNum } from "./http";
+import { httpGetJson, httpGetText, httpGetTextEncoded, parseNum } from "./http";
 
 export const CN_ETF = {
   code: "518880",
@@ -101,7 +101,7 @@ export interface CnEtfSharesRow {
   /** 期末总份额(亿份) */
   shares: number | null;
   /** 期末净资产(亿元) */
-  nav: number | null;
+  netAssets: number | null;
   /** 期间净申购(亿份, 正=净申购) */
   netFlow: number | null;
 }
@@ -129,9 +129,128 @@ export async function fetchCnEtfShares(code = CN_ETF.code): Promise<CnEtfSharesR
     const inflow = parseNum(tds[1]); // 期间申购(亿份)
     const outflow = parseNum(tds[2]); // 期间赎回(亿份)
     const shares = parseNum(tds[3]); // 期末总份额(亿份)
-    const nav = parseNum(tds[4]); // 期末净资产(亿元)
+    const netAssets = parseNum(tds[4]); // 期末净资产(亿元), 不是单位净值
     const netFlow = inflow !== null && outflow !== null ? inflow - outflow : null;
-    rows.push({ date, shares, nav, netFlow });
+    rows.push({ date, shares, netAssets, netFlow });
   }
   return rows.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export interface OfficialNavPoint {
+  date: string;
+  value: number;
+  publishedAt: string;
+  source: "huaan_product" | "huaan_pcf";
+}
+
+export interface DailySharesPoint {
+  date: string;
+  value: number;
+  rawValue: number;
+  rawUnit: "万份";
+  securityCode: string;
+}
+
+const HUAAN_PRODUCT_URL = "https://huaan.com.cn/funds/518880/index.shtml";
+const HUAAN_PCF_URL = "https://huaan.com.cn/etf/518880/sgshqd.jsp";
+const SSE_QUERY_URL = "https://query.sse.com.cn/commonQuery.do";
+
+function plainText(html: string): string {
+  return html.replace(/&nbsp;/gi, " ").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** 只解析产品页“单位净值”卡片, 绝不把相邻的累计净值当作 NAV。 */
+export function parseHuaanProductNav(html: string, firstObservedAt: string): OfficialNavPoint {
+  const item = html.match(/<li[^>]*>\s*<span[^>]*>\s*日期\s*<\/span>[\s\S]*?<span[^>]*>(\d{4}-\d{2}-\d{2})<\/span>\s*<\/li>[\s\S]*?<li[^>]*>\s*<span[^>]*>\s*单位净值\s*<\/span>[\s\S]*?<span[^>]*>([0-9.]+)<\/span>\s*<\/li>/i);
+  if (!item) throw new Error("华安产品页未找到日期与单位净值");
+  const value = Number(item[2]);
+  if (!Number.isFinite(value) || value <= 0) throw new Error("华安产品页单位净值无效");
+  return { date: item[1], value, publishedAt: firstObservedAt, source: "huaan_product" };
+}
+
+/** 解析 ETF 申购赎回清单中的“基金份额净值”, 日期为该信息内容所属日期。 */
+export function parseHuaanPcfNav(html: string): OfficialNavPoint {
+  const text = plainText(html);
+  const blockDate = text.match(/(20\d{6})\s*信息内容/)?.[1];
+  const announced = text.match(/公告日期\s*(20\d{6})/)?.[1];
+  const valueText = text.match(/基金份额净值\s*\(?单位\s*[:：]\s*元\)?\s*[￥¥]?\s*([0-9.]+)/)?.[1];
+  if (!blockDate || !valueText) throw new Error("华安 PCF 未找到信息日期或基金份额净值");
+  const value = Number(valueText);
+  if (!Number.isFinite(value) || value <= 0) throw new Error("华安 PCF 基金份额净值无效");
+  const date = blockDate.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
+  const publishedAt = (announced ?? blockDate).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
+  return { date, value, publishedAt, source: "huaan_pcf" };
+}
+
+export async function fetchCnEtfOfficialNav(
+  fetchedAt: string,
+  getText: typeof httpGetText = httpGetText,
+): Promise<{ point: OfficialNavPoint; fallbackUsed: boolean; primaryError?: string }> {
+  try {
+    const html = await getText(HUAAN_PRODUCT_URL, { timeoutMs: 20000, retries: 1 });
+    return { point: parseHuaanProductNav(html, fetchedAt), fallbackUsed: false };
+  } catch (error) {
+    const primaryError = (error as Error).message;
+    const html = getText === httpGetText
+      ? await httpGetTextEncoded(HUAAN_PCF_URL, "gbk", { timeoutMs: 20000, retries: 1 })
+      : await getText(HUAAN_PCF_URL, { timeoutMs: 20000, retries: 1 });
+    return { point: parseHuaanPcfNav(html), fallbackUsed: true, primaryError };
+  }
+}
+
+export async function fetchCnEtfPcfNavOn(date: string): Promise<OfficialNavPoint | null> {
+  const html = await httpGetTextEncoded(`${HUAAN_PCF_URL}?querydate=${encodeURIComponent(date)}`, "gbk", { timeoutMs: 20000, retries: 1 });
+  try {
+    return parseHuaanPcfNav(html);
+  } catch {
+    return null;
+  }
+}
+
+export function parseSseDailyShares(payload: unknown, expectedCode = CN_ETF.code): DailySharesPoint[] {
+  const rows = (payload as { result?: Array<Record<string, unknown>> })?.result;
+  if (!Array.isArray(rows)) throw new Error("上交所份额响应缺少 result");
+  const seen = new Set<string>();
+  const out: DailySharesPoint[] = [];
+  for (const row of rows) {
+    const date = String(row.STAT_DATE ?? "");
+    const code = String(row.SEC_CODE ?? "");
+    const rawValue = Number(row.TOT_VOL);
+    if (code !== expectedCode || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(rawValue) || rawValue <= 0) {
+      throw new Error("上交所份额行的代码、日期或数值无效");
+    }
+    if (seen.has(date)) throw new Error(`上交所份额日期重复: ${date}`);
+    seen.add(date);
+    out.push({ date, value: rawValue / 10000, rawValue, rawUnit: "万份", securityCode: code });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+async function fetchSseShares(params: Record<string, string>): Promise<DailySharesPoint[]> {
+  const query = new URLSearchParams(params);
+  const payload = await httpGetJson<unknown>(`${SSE_QUERY_URL}?${query}`, {
+    timeoutMs: 20000,
+    retries: 1,
+    headers: { referer: "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880" },
+  });
+  return parseSseDailyShares(payload);
+}
+
+export function fetchCnEtfDailySharesLatest(): Promise<DailySharesPoint[]> {
+  return fetchSseShares({
+    sqlId: "COMMON_SSE_ZQPZ_ETFZL_ETFJBXX_JJGM_MOREN_L",
+    SEC_CODE: CN_ETF.code,
+    "pageHelp.pageSize": "400",
+    "pageHelp.pageNo": "1",
+  });
+}
+
+export function fetchCnEtfDailySharesOn(date: string): Promise<DailySharesPoint[]> {
+  return fetchSseShares({
+    sqlId: "COMMON_SSE_ZQPZ_ETFZL_ETFJBXX_JJGM_SEARCH_L",
+    SEC_CODE: CN_ETF.code,
+    STAT_DATE: date,
+    "pageHelp.pageSize": "20",
+    "pageHelp.pageNo": "1",
+  });
 }

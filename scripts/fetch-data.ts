@@ -31,7 +31,20 @@ import {
 } from "../lib/data-sources/wgc";
 import { fetchGoldApiSpot } from "../lib/data-sources/goldApi";
 import { downloadGldArchive, parseGldArchive } from "../lib/data-sources/spdr";
-import { fetchCnEtfKline, fetchCnEtfQuote, fetchCnEtfShares, CN_ETF } from "../lib/data-sources/cnEtf";
+import {
+  fetchCnEtfKline,
+  fetchCnEtfQuote,
+  fetchCnEtfShares,
+  fetchCnEtfOfficialNav,
+  fetchCnEtfPcfNavOn,
+  fetchCnEtfDailySharesLatest,
+  fetchCnEtfDailySharesOn,
+  CN_ETF,
+  type OfficialNavPoint,
+  type DailySharesPoint,
+} from "../lib/data-sources/cnEtf";
+import { buildEtfFoundationRows, latestFormalPremium } from "../lib/cn-etf-foundation";
+import { mergeObservations } from "../lib/series-merge";
 import type { Observation, SeriesFile, SeriesId, Frequency, Unit } from "../types";
 
 const ROOT = path.resolve(process.cwd());
@@ -77,29 +90,11 @@ async function readExisting(series: SeriesId): Promise<SeriesFile | null> {
   }
 }
 
-function mergeObservations(existing: Observation[] | null | undefined, next: Observation[]): Observation[] {
-  const map = new Map<string, Observation>();
-  for (const o of existing ?? []) map.set(o.observation_date, o);
-  for (const o of next) {
-    const previous = map.get(o.observation_date);
-    if (previous) {
-      const { fetched_at: previousFetchedAt, ...previousContent } = previous;
-      const { fetched_at: nextFetchedAt, ...nextContent } = o;
-      // Re-fetching unchanged history must not rewrite every observation's
-      // audit timestamp. Preserve the first successful fetch time unless the
-      // observation itself (value/source/note/etc.) has genuinely changed.
-      if (JSON.stringify(previousContent) === JSON.stringify(nextContent)) continue;
-    }
-    map.set(o.observation_date, o);
-  }
-  return [...map.values()].sort((a, b) => a.observation_date.localeCompare(b.observation_date));
-}
-
 async function writeSeries(series: SeriesFile, force = false): Promise<void> {
   await mkdir(SERIES_DIR, { recursive: true });
   const file = path.join(SERIES_DIR, `${series.meta.series}.json`);
   const existing = force ? null : await readExisting(series.meta.series);
-  const mergedObs = existing ? mergeObservations(existing.observations, series.observations) : series.observations;
+  const mergedObs = mergeObservations(existing?.observations, series.observations);
   const last = mergedObs.length ? mergedObs[mergedObs.length - 1] : null;
   const out: SeriesFile = {
     ...series,
@@ -509,7 +504,8 @@ async function fetchChinaGoldBlock(): Promise<void> {
 }
 
 /** 国内黄金ETF 518880: 日K价格 + 实时报价 + 季度份额 */
-async function fetchChinaEtfBlock(): Promise<void> {
+async function fetchChinaEtfBlock(foundationOnly = false): Promise<void> {
+  if (!foundationOnly) {
   // 1) 日K(收盘价)
   try {
     const rows = await fetchCnEtfKline();
@@ -609,6 +605,153 @@ async function fetchChinaEtfBlock(): Promise<void> {
   } catch (e) {
     console.warn(`[china] 518880 季度份额抓取失败: ${(e as Error).message}`);
   }
+  }
+
+  // 4) 官方单位净值(日频): 华安基金产品页为主, PCF 为回退/历史来源。
+  try {
+    const existing = await readExisting("cn_gold_etf_nav");
+    const points = new Map<string, OfficialNavPoint>();
+    const latest = await fetchCnEtfOfficialNav(FETCHED_AT);
+    points.set(latest.point.date, latest.point);
+    const needsPublishedAtRepair = existing?.observations.some((item) =>
+      item.source_url?.includes("/sgshqd.jsp") && item.published_at === item.observation_date
+    ) ?? false;
+    if ((existing?.observations.length ?? 0) < 60 || needsPublishedAtRepair) {
+      const start = new Date(NOW);
+      start.setUTCDate(start.getUTCDate() - 119);
+      for (let cursor = new Date(start); cursor <= NOW; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+        const weekday = cursor.getUTCDay();
+        if (weekday === 0 || weekday === 6) continue;
+        const date = cursor.toISOString().slice(0, 10);
+        try {
+          const point = await fetchCnEtfPcfNavOn(date);
+          if (point) points.set(point.date, point);
+        } catch (error) {
+          console.warn(`[china] 518880 NAV 历史 ${date} 跳过: ${(error as Error).message}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      }
+    }
+    const observations = [...points.values()].map((point) =>
+      obs("cn_gold_etf_nav", point.date, point.value, "cny_per_share", "daily", "华安基金官方", point.source === "huaan_product" ? "https://huaan.com.cn/funds/518880/index.shtml" : "https://huaan.com.cn/etf/518880/sgshqd.jsp", {
+        published_at: point.publishedAt,
+        nav_kind: "official_unit_nav",
+        note: point.source === "huaan_product"
+          ? "官方单位净值；产品页未披露精确发布时间，published_at 为本站首次观察时间"
+          : "官方申购赎回清单(PCF)披露的基金份额净值；非累计净值、非盘中 IOPV",
+      }),
+    );
+    await writeSeries({
+      meta: {
+        series: "cn_gold_etf_nav",
+        name: "华安黄金ETF 518880 官方单位净值",
+        description: "华安黄金ETF 官方日度单位净值(元/份)，用于与同日收盘价计算折溢价",
+        unit: "cny_per_share",
+        frequency: "daily",
+        source: {
+          name: "华安基金官方",
+          url: "https://huaan.com.cn/funds/518880/index.shtml",
+          tier: "official",
+          update_note: "基金交易日更新，通常 T 日收盘后披露",
+          lag_note: "产品页为主，申购赎回清单 PCF 为回退及有限历史初始化；不使用实时 IOPV",
+          requires_api_key: false,
+        },
+      },
+      observations,
+      last_fetched_at: FETCHED_AT,
+      last_observation_date: null,
+      all_real: true,
+    });
+    if (latest.fallbackUsed) console.warn(`[china] 518880 NAV 主源失败，已使用 PCF 回退: ${latest.primaryError}`);
+  } catch (e) {
+    console.warn(`[china] 518880 官方 NAV 抓取失败, 保留旧快照: ${(e as Error).message}`);
+  }
+
+  // 5) 上交所日度总份额；原始单位万份，统一换算为亿份。
+  try {
+    const existing = await readExisting("cn_gold_etf_shares_daily");
+    const points = new Map<string, DailySharesPoint>();
+    for (const point of await fetchCnEtfDailySharesLatest()) points.set(point.date, point);
+    if (!existing?.observations.length) {
+      const start = new Date(NOW);
+      start.setUTCDate(start.getUTCDate() - 119);
+      for (let cursor = new Date(start); cursor <= NOW; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+        const weekday = cursor.getUTCDay();
+        if (weekday === 0 || weekday === 6) continue;
+        const date = cursor.toISOString().slice(0, 10);
+        try {
+          for (const point of await fetchCnEtfDailySharesOn(date)) points.set(point.date, point);
+        } catch (error) {
+          console.warn(`[china] 518880 份额历史 ${date} 跳过: ${(error as Error).message}`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 80));
+      }
+    }
+    const observations = [...points.values()].map((point) =>
+      obs("cn_gold_etf_shares_daily", point.date, point.value, "hundred_million_shares", "daily", "上海证券交易所", "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880", {
+        raw_value: point.rawValue,
+        raw_unit: point.rawUnit,
+        security_code: point.securityCode,
+        note: "上交所基金规模数据 TOT_VOL，原始单位万份；统一值=原始值÷10,000 亿份",
+      }),
+    );
+    await writeSeries({
+      meta: {
+        series: "cn_gold_etf_shares_daily",
+        name: "华安黄金ETF 518880 日度总份额",
+        description: "上交所披露的华安黄金ETF日度总份额(亿份)",
+        unit: "hundred_million_shares",
+        frequency: "daily",
+        source: {
+          name: "上海证券交易所",
+          url: "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880",
+          tier: "official",
+          update_note: "交易日更新",
+          lag_note: "上交所原始字段 TOT_VOL 单位为万份，本站除以 10,000 转为亿份",
+          requires_api_key: false,
+        },
+      },
+      observations,
+      last_fetched_at: FETCHED_AT,
+      last_observation_date: null,
+      all_real: true,
+    });
+  } catch (e) {
+    console.warn(`[china] 518880 日度份额抓取失败, 保留旧快照: ${(e as Error).message}`);
+  }
+
+  // 6) 派生基础层：严格同日折溢价、估算规模、份额变化与对称分解。
+  try {
+    const [priceFile, navFile, sharesFile] = await Promise.all([
+      readExisting("cn_gold_etf_price"),
+      readExisting("cn_gold_etf_nav"),
+      readExisting("cn_gold_etf_shares_daily"),
+    ]);
+    if (!priceFile || !navFile || !sharesFile) throw new Error("价格、NAV 或日度份额快照缺失");
+    const dated = (file: SeriesFile) => file.observations.map((item) => ({ date: item.observation_date, value: item.value }));
+    const navValues = dated(navFile);
+    const shareValues = dated(sharesFile);
+    const foundationStart = [navValues[0]?.date, shareValues[0]?.date].filter((date): date is string => Boolean(date)).sort()[0];
+    const priceValues = dated(priceFile).filter((item) => !foundationStart || item.date >= foundationStart);
+    const rows = buildEtfFoundationRows(priceValues, navValues, shareValues);
+    const latest = latestFormalPremium(rows);
+    await mkdir(DERIVED_DIR, { recursive: true });
+    await writeFile(path.join(DERIVED_DIR, "cn-gold-etf-foundation.json"), JSON.stringify({
+      generated_at: FETCHED_AT,
+      etf_code: CN_ETF.code,
+      units: { price: "cny_per_share", nav: "cny_per_share", shares: "hundred_million_shares", estimated_aum: "cny" },
+      methodology: {
+        premium_discount: "only same-date close / official unit NAV - 1",
+        estimated_aum: "official unit NAV × shares",
+        decomposition: "symmetric midpoint: market=(Q1+Q0)/2×(N1-N0); shares=(N1+N0)/2×(Q1-Q0)",
+      },
+      latest_formal_premium: latest,
+      rows,
+    }, null, 2), "utf8");
+    console.log(`[derived] cn-gold-etf-foundation: ${rows.length} 条`);
+  } catch (e) {
+    console.warn(`[derived] 518880 基础层生成失败, 保留旧快照: ${(e as Error).message}`);
+  }
 }
 
 async function writeManifest(): Promise<void> {
@@ -653,7 +796,8 @@ async function main(): Promise<void> {
   if (!only || only.includes("wgc")) await fetchWgcBlock();
   if (!only || only.includes("spdr")) await fetchSpdrBlock();
   if (!only || only.includes("china")) await fetchChinaGoldBlock();
-  if (!only || only.includes("china")) await fetchChinaEtfBlock();
+  if (!only || only.includes("china")) await fetchChinaEtfBlock(false);
+  else if (only.includes("china-etf")) await fetchChinaEtfBlock(true);
   await writeManifest();
   console.log("== 完成 ==");
 }

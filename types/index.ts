@@ -23,6 +23,8 @@ export type SeriesId =
   | "au99_99"             // 上海黄金交易所 Au99.99 日度价格(人民币/克), 交易日 (WGC 汇编自 SGE)
   | "usd_cny"             // 美元兑人民币(CNY per USD), 交易日 (FRED H.10 DEXCHUS)
   | "cn_gold_etf_price"   // 国内代表性黄金ETF 518880 收盘价(元/份), 交易日 (腾讯行情·上交所)
+  | "cn_gold_etf_nav"     // 518880 官方单位净值(元/份), 日频 (华安基金)
+  | "cn_gold_etf_shares_daily" // 518880 总份额(亿份), 日频 (上交所)
   | "cn_gold_etf_shares"; // 518880 期末份额(亿份), 季度 (东方财富·基金公司披露)
 
 export type Frequency = "daily" | "weekly" | "monthly" | "quarterly";
@@ -73,6 +75,13 @@ export interface Observation {
   is_mock?: boolean;
   /** 附加说明 */
   note?: string;
+  /** 原始来源数值及单位, 用于单位换算审计 */
+  raw_value?: number;
+  raw_unit?: string;
+  /** 交易所证券代码 */
+  security_code?: string;
+  /** 净值口径, 明确排除累计净值与 IOPV */
+  nav_kind?: "official_unit_nav";
 }
 
 export interface SeriesFile {
@@ -109,5 +118,7 @@ export const SERIES_META: Record<SeriesId, { name: string; short: string; unitLa
   au99_99: { name: "上海黄金交易所 Au99.99", short: "Au99.99", unitLabel: "元/克" },
   usd_cny: { name: "美元兑人民币 USD/CNY", short: "USD/CNY", unitLabel: "人民币/美元" },
   cn_gold_etf_price: { name: "国内黄金ETF 518880 收盘价", short: "518880", unitLabel: "元/份" },
+  cn_gold_etf_nav: { name: "华安黄金ETF 518880 官方单位净值", short: "518880 NAV", unitLabel: "元/份" },
+  cn_gold_etf_shares_daily: { name: "华安黄金ETF 518880 日度份额", short: "518880日度份额", unitLabel: "亿份" },
   cn_gold_etf_shares: { name: "国内黄金ETF 518880 份额", short: "518880份额", unitLabel: "亿份" },
 };
