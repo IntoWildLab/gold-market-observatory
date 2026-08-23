@@ -1,0 +1,136 @@
+name: Ephemeral Data Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-ephemeral-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Rebuild data from an empty runner state
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify required repository secret
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          if [ -z "$FRED_API_KEY" ]; then
+            echo "::error::Required repository secret FRED_API_KEY is not configured."
+            exit 1
+          fi
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Remove checked-in production snapshots
+        run: |
+          rm -rf data/series data/derived
+          rm -f data/latest-spot.json data/latest-cn-etf.json data/manifest.json
+          mkdir -p data/series data/derived
+
+      - name: Verify empty production-data baseline
+        run: |
+          if find data/series data/derived -type f -print -quit | grep -q .; then
+            echo "::error::Production series or derived snapshots remain before fetch."
+            exit 1
+          fi
+          for file in data/latest-spot.json data/latest-cn-etf.json data/manifest.json; do
+            if [ -e "$file" ]; then
+              echo "::error::Production file remains before fetch: $file"
+              exit 1
+            fi
+          done
+
+      - name: Fetch all production data
+        id: fetch
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: npm run data:fetch
+
+      - name: Verify complete ephemeral dataset
+        id: dataset
+        run: node scripts/validate-ephemeral-build.mjs data
+
+      - name: Run data quality gate
+        id: quality
+        run: npm run data:check
+
+      - name: Remove raw and probe staging before build
+        run: rm -rf data/raw scripts/probe-out scripts/probe-out2 scripts/probes/probe-out
+
+      - name: Verify raw and probe staging is absent
+        id: staging
+        run: |
+          for path in data/raw scripts/probe-out scripts/probe-out2 scripts/probes/probe-out; do
+            if [ -e "$path" ]; then
+              echo "::error::Staging path remains before build: $path"
+              exit 1
+            fi
+          done
+          echo "status=clean" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests
+        id: tests
+        run: npm test
+
+      - name: Run typecheck
+        id: typecheck
+        run: npm run typecheck
+
+      - name: Build application
+        id: build
+        run: npm run build
+
+      - name: Verify build tracing and secret exclusion
+        id: tracing
+        env:
+          EPHEMERAL_SECRET_TO_REJECT: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/validate-ephemeral-build.mjs trace
+
+      - name: Write validation summary
+        if: always()
+        env:
+          FETCH_STATUS: ${{ steps.fetch.outcome }}
+          SERIES_COUNT: ${{ steps.dataset.outputs.series_count }}
+          DERIVED_COUNT: ${{ steps.dataset.outputs.derived_count }}
+          LATEST_DATE_MIN: ${{ steps.dataset.outputs.latest_date_min }}
+          LATEST_DATE_MAX: ${{ steps.dataset.outputs.latest_date_max }}
+          QUALITY_STATUS: ${{ steps.quality.outputs.status }}
+          QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+          TEST_STATUS: ${{ steps.tests.outcome }}
+          TYPECHECK_STATUS: ${{ steps.typecheck.outcome }}
+          BUILD_STATUS: ${{ steps.build.outcome }}
+          STAGING_STATUS: ${{ steps.staging.outputs.status }}
+          TRACING_STATUS: ${{ steps.tracing.outputs.raw_status }}
+          TRACING_OUTCOME: ${{ steps.tracing.outcome }}
+        run: |
+          {
+            echo "# Ephemeral Data Validation"
+            echo
+            echo "- Fetch status: **${FETCH_STATUS:-Not run}**"
+            echo "- Series count: **${SERIES_COUNT:-Not available}**"
+            echo "- Derived count: **${DERIVED_COUNT:-Not available}**"
+            echo "- Latest data dates: **${LATEST_DATE_MIN:-Not available} to ${LATEST_DATE_MAX:-Not available}**"
+            echo "- Quality status: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
+            echo "- Test status: **${TEST_STATUS:-Not run}**"
+            echo "- Typecheck status: **${TYPECHECK_STATUS:-Not run}**"
+            echo "- Build status: **${BUILD_STATUS:-Not run}**"
+            echo "- Raw staging status: **${STAGING_STATUS:-Not run}**"
+            echo "- Raw tracing status: **${TRACING_STATUS:-${TRACING_OUTCOME:-Not run}}**"
+          } >> "$GITHUB_STEP_SUMMARY"
