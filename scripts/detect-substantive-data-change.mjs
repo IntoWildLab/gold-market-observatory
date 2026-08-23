@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { appendFile, readFile } from "node:fs/promises";
-import { normalizeForSubstantiveChange } from "./data-change-lib.mjs";
+import { normalizeForSubstantiveChange, uniqueJsonPaths } from "./data-change-lib.mjs";
 
 const dataPaths = ["data/series", "data/derived", "data/manifest.json", "data/latest-spot.json", "data/latest-cn-etf.json"];
 
@@ -10,15 +10,15 @@ function git(args, options = {}) {
 
 function fromHead(file) {
   try {
-    return git(["show", `HEAD:${file}`]);
+    return git(["show", `HEAD:${file}`], { stdio: ["ignore", "pipe", "ignore"] });
   } catch {
     return null;
   }
 }
 
-const names = git(["diff", "--name-only", "--", ...dataPaths])
-  .split(/\r?\n/)
-  .filter((name) => name.endsWith(".json"));
+const tracked = git(["diff", "--name-only", "--", ...dataPaths]).split(/\r?\n/).filter(Boolean);
+const untracked = git(["ls-files", "--others", "--exclude-standard", "--", ...dataPaths]).split(/\r?\n/).filter(Boolean);
+const names = uniqueJsonPaths(tracked, untracked);
 
 const substantive = [];
 const auditOnly = [];

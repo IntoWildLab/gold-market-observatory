@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-08-23T06:45:05.347Z",
+  "source_series": [
+    "gold_price",
+    "usd_cny",
+    "au99_99"
+  ],
+  "benchmark_role": "china_gold_benchmark",
+  "theoretical_formula": "XAU_USD * USD_CNY / 31.1034768",
+  "common_calendar_count": 681,
+  "windows": [
+    {
+      "window": "5D",
+      "status": "available",
+      "start_date": "2026-08-07",
+      "end_date": "2026-08-14",
+      "sample_count": 6,
+      "actual_au99_return_pct": 0.7718448163116509,
+      "gold_factor_return_pct": 1.2720416094843756,
+      "fx_factor_return_pct": -0.09188724545751148,
+      "deviation_factor_return_pct": -0.40239650716659137,
+      "gold_contribution_pp": 1.2688994297790306,
+      "fx_contribution_pp": -0.09228522412659472,
+      "deviation_contribution_pp": -0.40476938934079576,
+      "interaction_method": "shapley_equal_allocation",
+      "closure_error": -1.0668549377257364e-14
+    },
+    {
+      "window": "20D",
+      "status": "available",
+      "start_date": "2026-07-17",
+      "end_date": "2026-08-14",
+      "sample_count": 21,
+      "actual_au99_return_pct": 7.755883398099428,
+      "gold_factor_return_pct": 9.895253231882052,
+      "fx_factor_return_pct": -0.5135773317591408,
+      "deviation_factor_return_pct": -1.4405564726742814,
+      "gold_contribution_pp": 9.798814016860952,
+      "fx_contribution_pp": -0.5350440055731236,
+      "deviation_contribution_pp": -1.5078866131884032,
+      "interaction_method": "shapley_equal_allocation",
+      "closure_error": -2.7755575615628914e-15
+    },
+    {
+      "window": "60D",
+      "status": "available",
+      "start_date": "2026-05-19",
+      "end_date": "2026-08-14",
+      "sample_count": 61,
+      "actual_au99_return_pct": -5.815223381125579,
+      "gold_factor_return_pct": -2.357284230658041,
+      "fx_factor_return_pct": -1.075647516325473,
+      "deviation_factor_return_pct": -2.492584403294773,
+      "gold_contribution_pp": -2.315438220290169,
+      "fx_contribution_pp": -1.049774444381778,
+      "deviation_contribution_pp": -2.4500107164536256,
+      "interaction_method": "shapley_equal_allocation",
+      "closure_error": 5.551115123125783e-15
+    }
+  ]
+}

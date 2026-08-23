@@ -1,6 +1,6 @@
 import { appendFile, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { validateSeriesData } from "./data-quality-lib.mjs";
+import { validateSeriesData, validateChinaAttributionData, validateCnEtfTrackingData } from "./data-quality-lib.mjs";
 
 const root = process.cwd();
 const seriesDir = path.join(root, "data", "series");
@@ -43,6 +43,7 @@ const now = new Date();
 const errors = [];
 const warnings = [];
 const rows = [];
+const loadedSeries = new Map();
 
 function ageInDays(dateText) {
   const date = new Date(`${dateText}T00:00:00Z`);
@@ -63,6 +64,7 @@ for (const id of required) {
   let data;
   try {
     data = JSON.parse(await readFile(path.join(seriesDir, `${id}.json`), "utf8"));
+    loadedSeries.set(id, data);
   } catch {
     fail(`${id}: required series file is missing or invalid JSON`);
     continue;
@@ -113,6 +115,30 @@ for (const id of required) {
   else if (fetchAge > 2) warn(`${id}: snapshot was not refreshed by a successful fetch in the last 48 hours`);
 
   rows.push({ id, frequency, latestDate: latestDate ?? "—", age: age ?? "—", observations: observations.length });
+}
+
+const derivedChecks = [
+  {
+    name: "china-gold-attribution.json",
+    validate: validateChinaAttributionData,
+    sourceIds: ["gold_price", "usd_cny", "au99_99"],
+  },
+  {
+    name: "cn-gold-etf-tracking.json",
+    validate: validateCnEtfTrackingData,
+    sourceIds: ["cn_gold_etf_nav", "au99_99"],
+  },
+];
+for (const check of derivedChecks) {
+  try {
+    const data = JSON.parse(await readFile(path.join(root, "data", "derived", check.name), "utf8"));
+    const dateSets = check.sourceIds.map((id) => new Set((loadedSeries.get(id)?.observations ?? []).map((item) => item.observation_date)));
+    const result = check.validate(data, now, dateSets);
+    for (const message of result.errors) fail(message);
+    for (const message of result.warnings) warn(message);
+  } catch {
+    fail(`${check.name}: required derived file is missing or invalid JSON`);
+  }
 }
 
 const status = errors.length ? "failed" : warnings.length ? "partial" : "success";

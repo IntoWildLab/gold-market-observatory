@@ -45,6 +45,7 @@ import {
   preserveProductNavFirstObserved,
 } from "../lib/data-sources/cnEtf";
 import { buildEtfFoundationRows, latestFormalPremium } from "../lib/cn-etf-foundation";
+import { computeChinaGoldAttribution, computeCnEtfTracking } from "../lib/china-analysis";
 import { mergeObservations } from "../lib/series-merge";
 import type { Observation, SeriesFile, SeriesId, Frequency, Unit } from "../types";
 
@@ -757,6 +758,30 @@ async function fetchChinaEtfBlock(foundationOnly = false): Promise<void> {
   }
 }
 
+/** 仅基于已部署 series 快照生成 China Investor Step 2 派生分析，不访问外部数据源。 */
+async function writeChinaAnalysisDerived(): Promise<void> {
+  try {
+    const [gold, fx, au99, nav] = await Promise.all([
+      readExisting("gold_price"),
+      readExisting("usd_cny"),
+      readExisting("au99_99"),
+      readExisting("cn_gold_etf_nav"),
+    ]);
+    if (!gold || !fx || !au99 || !nav) throw new Error("gold_price、usd_cny、au99_99 或 cn_gold_etf_nav 快照缺失");
+    const attribution = computeChinaGoldAttribution(gold.observations, fx.observations, au99.observations, FETCHED_AT);
+    const tracking = computeCnEtfTracking(nav.observations, au99.observations, FETCHED_AT);
+    await mkdir(DERIVED_DIR, { recursive: true });
+    await Promise.all([
+      writeFile(path.join(DERIVED_DIR, "china-gold-attribution.json"), JSON.stringify(attribution, null, 2), "utf8"),
+      writeFile(path.join(DERIVED_DIR, "cn-gold-etf-tracking.json"), JSON.stringify(tracking, null, 2), "utf8"),
+    ]);
+    console.log(`[derived] china-gold-attribution: ${attribution.common_calendar_count} 个共同日期`);
+    console.log(`[derived] cn-gold-etf-tracking: ${tracking.common_calendar_count} 个共同日期`);
+  } catch (e) {
+    console.warn(`[derived] China Investor Step 2 生成失败, 保留旧快照: ${(e as Error).message}`);
+  }
+}
+
 async function writeManifest(): Promise<void> {
   const files = (await readdir(SERIES_DIR)).filter((f) => f.endsWith(".json"));
   const entries: Array<Record<string, unknown>> = [];
@@ -801,7 +826,10 @@ async function main(): Promise<void> {
   if (!only || only.includes("china")) await fetchChinaGoldBlock();
   if (!only || only.includes("china")) await fetchChinaEtfBlock(false);
   else if (only.includes("china-etf")) await fetchChinaEtfBlock(true);
-  await writeManifest();
+  if (!only || only.includes("china") || only.includes("china-etf") || only.includes("china-derived")) {
+    await writeChinaAnalysisDerived();
+  }
+  if (!(only?.length === 1 && only[0] === "china-derived")) await writeManifest();
   console.log("== 完成 ==");
 }
 

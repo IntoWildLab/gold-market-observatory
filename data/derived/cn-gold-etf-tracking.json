@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-08-23T06:45:05.347Z",
+  "etf_code": "518880",
+  "source_series_id": "cn_gold_etf_nav",
+  "benchmark_id": "au99_99",
+  "benchmark_role": "china_gold_benchmark",
+  "benchmark_is_proxy": true,
+  "metric": "tracking_difference",
+  "unit": "percentage_points",
+  "common_calendar_count": 82,
+  "windows": [
+    {
+      "window": "5D",
+      "status": "available",
+      "start_date": "2026-08-14",
+      "end_date": "2026-08-21",
+      "sample_count": 6,
+      "nav_return_pct": 4.540225391754982,
+      "benchmark_return_pct": 4.768996734146791,
+      "tracking_difference_pp": -0.22877134239180918
+    },
+    {
+      "window": "20D",
+      "status": "available",
+      "start_date": "2026-07-24",
+      "end_date": "2026-08-21",
+      "sample_count": 21,
+      "nav_return_pct": 11.255334070296797,
+      "benchmark_return_pct": 11.777457467455088,
+      "tracking_difference_pp": -0.5221233971582908
+    },
+    {
+      "window": "60D",
+      "status": "available",
+      "start_date": "2026-05-28",
+      "end_date": "2026-08-21",
+      "sample_count": 61,
+      "nav_return_pct": 2.109879560132666,
+      "benchmark_return_pct": 2.7158382178093854,
+      "tracking_difference_pp": -0.6059586576767195
+    }
+  ]
+}

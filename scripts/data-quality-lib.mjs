@@ -42,3 +42,67 @@ export function validateSeriesData(id, data, now = new Date()) {
   }
   return { errors, warnings };
 }
+
+function validDate(date, now) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) return false;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.getTime() <= now.getTime() + 2 * 86_400_000;
+}
+
+function finiteFields(row, fields) {
+  return fields.every((field) => typeof row?.[field] === "number" && Number.isFinite(row[field]));
+}
+
+export function validateChinaAttributionData(data, now = new Date(), sourceDateSets = []) {
+  const errors = [];
+  if (JSON.stringify(data?.source_series) !== JSON.stringify(["gold_price", "usd_cny", "au99_99"])) {
+    errors.push("china-gold-attribution: source_series contract is invalid");
+  }
+  if (data?.benchmark_role !== "china_gold_benchmark") errors.push("china-gold-attribution: Au99.99 benchmark role is missing");
+  for (const row of data?.windows ?? []) {
+    const window = Number.parseInt(row.window, 10);
+    if (row.status === "insufficient_data") continue;
+    if (!validDate(row.start_date, now) || !validDate(row.end_date, now) || row.start_date >= row.end_date) {
+      errors.push(`china-gold-attribution: ${row.window} dates are invalid`);
+    }
+    if (row.sample_count !== window + 1) errors.push(`china-gold-attribution: ${row.window} sample_count is invalid`);
+    const fields = [
+      "actual_au99_return_pct", "gold_factor_return_pct", "fx_factor_return_pct",
+      "deviation_factor_return_pct", "gold_contribution_pp", "fx_contribution_pp",
+      "deviation_contribution_pp", "closure_error",
+    ];
+    if (!finiteFields(row, fields)) errors.push(`china-gold-attribution: ${row.window} has non-finite values`);
+    if (Math.abs(row.closure_error) > 1e-8) errors.push(`china-gold-attribution: ${row.window} does not close`);
+    if (row.interaction_method !== "shapley_equal_allocation") errors.push(`china-gold-attribution: ${row.window} interaction method is invalid`);
+    if (sourceDateSets.length && !sourceDateSets.every((dates) => dates.has(row.start_date) && dates.has(row.end_date))) {
+      errors.push(`china-gold-attribution: ${row.window} endpoints are not common to all three series`);
+    }
+  }
+  return { errors, warnings: [] };
+}
+
+export function validateCnEtfTrackingData(data, now = new Date(), sourceDateSets = []) {
+  const errors = [];
+  if (data?.source_series_id !== "cn_gold_etf_nav") errors.push("cn-gold-etf-tracking: official NAV source is required");
+  if (data?.source_series_id === "cn_gold_etf_price") errors.push("cn-gold-etf-tracking: market price cannot be used");
+  if (data?.benchmark_id !== "au99_99" || data?.benchmark_is_proxy !== true) {
+    errors.push("cn-gold-etf-tracking: benchmark proxy metadata is invalid");
+  }
+  for (const row of data?.windows ?? []) {
+    const window = Number.parseInt(row.window, 10);
+    if (row.status === "insufficient_data") continue;
+    if (!validDate(row.start_date, now) || !validDate(row.end_date, now) || row.start_date >= row.end_date) {
+      errors.push(`cn-gold-etf-tracking: ${row.window} dates are invalid`);
+    }
+    if (row.sample_count !== window + 1) errors.push(`cn-gold-etf-tracking: ${row.window} sample_count is invalid`);
+    if (!finiteFields(row, ["nav_return_pct", "benchmark_return_pct", "tracking_difference_pp"])) {
+      errors.push(`cn-gold-etf-tracking: ${row.window} has non-finite values`);
+    } else if (Math.abs(row.nav_return_pct - row.benchmark_return_pct - row.tracking_difference_pp) > 1e-10) {
+      errors.push(`cn-gold-etf-tracking: ${row.window} tracking difference does not close`);
+    }
+    if (sourceDateSets.length && !sourceDateSets.every((dates) => dates.has(row.start_date) && dates.has(row.end_date))) {
+      errors.push(`cn-gold-etf-tracking: ${row.window} endpoints are not common to NAV and benchmark`);
+    }
+  }
+  return { errors, warnings: [] };
+}

@@ -16,3 +16,7 @@ export function normalizeForSubstantiveChange(value) {
 export function isSubstantiveDataChange(previous, current) {
   return JSON.stringify(normalizeForSubstantiveChange(previous)) !== JSON.stringify(normalizeForSubstantiveChange(current));
 }
+
+export function uniqueJsonPaths(...lists) {
+  return [...new Set(lists.flat().filter((name) => name.endsWith(".json")))].sort();
+}

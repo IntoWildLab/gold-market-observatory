@@ -9,6 +9,7 @@ import { loadAllSeries, loadManifest, loadLatestSpot, loadLatestCnEtf, loadDeriv
 import { periodReturns, trendState, yearPosition, latestChange, sumRange, type PeriodReturn, type TrendResult, type YearPosition } from "./indicators/returns";
 import { computeAssessment, computeDrivers, type Assessment, type DriverRow } from "./scoring/score";
 import { computeChinaComparison, buildTheoreticalSeries, type ChinaComparison, type TheoreticalResult } from "./china";
+import type { ChinaGoldAttributionData, CnEtfTrackingData } from "./china-analysis";
 
 export interface MacroKpi {
   seriesId: SeriesId;
@@ -131,6 +132,8 @@ export interface PageData {
   china: ChinaKpi;
   comparison: ChinaComparison;
   theoretical: TheoreticalResult;
+  chinaGoldAttribution: ChinaGoldAttributionData | null;
+  cnGoldEtfTracking: CnEtfTrackingData | null;
   chinaEtfLatest: LatestCnEtf | null;
   temperature: Assessment;
   drivers: DriverRow[];
@@ -292,6 +295,8 @@ export async function buildPageData(): Promise<PageData> {
     rows: Array<{ date: string; northAmerica: number | null; europe: number | null; asia: number | null; other: number | null; total: number | null }>;
   } | null;
   const etfFlowsUsd = (await loadDerived("gold-etf-flows-usd.json")) as { rows: Array<{ date: string; totalUsd: number }> } | null;
+  const chinaGoldAttribution = (await loadDerived("china-gold-attribution.json")) as ChinaGoldAttributionData | null;
+  const cnGoldEtfTracking = (await loadDerived("cn-gold-etf-tracking.json")) as CnEtfTrackingData | null;
 
   // ---- 中国黄金层(本轮新增) ----
   const chinaEtfLatest = await loadLatestCnEtf();
@@ -393,6 +398,8 @@ export async function buildPageData(): Promise<PageData> {
     china,
     comparison,
     theoretical,
+    chinaGoldAttribution,
+    cnGoldEtfTracking,
     chinaEtfLatest,
     temperature,
     drivers,
