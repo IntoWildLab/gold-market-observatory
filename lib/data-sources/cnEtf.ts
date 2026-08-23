@@ -151,6 +151,12 @@ export interface DailySharesPoint {
   securityCode: string;
 }
 
+export function preserveProductNavFirstObserved(point: OfficialNavPoint, previousPublishedAt?: string): OfficialNavPoint {
+  return point.source === "huaan_product" && previousPublishedAt
+    ? { ...point, publishedAt: previousPublishedAt }
+    : point;
+}
+
 const HUAAN_PRODUCT_URL = "https://huaan.com.cn/funds/518880/index.shtml";
 const HUAAN_PCF_URL = "https://huaan.com.cn/etf/518880/sgshqd.jsp";
 const SSE_QUERY_URL = "https://query.sse.com.cn/commonQuery.do";

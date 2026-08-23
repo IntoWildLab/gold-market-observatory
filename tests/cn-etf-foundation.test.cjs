@@ -5,6 +5,7 @@ const {
   parseHuaanPcfNav,
   parseSseDailyShares,
   fetchCnEtfOfficialNav,
+  preserveProductNavFirstObserved,
 } = require("../.tmp-pipeline/lib/data-sources/cnEtf.js");
 const { buildEtfFoundationRows } = require("../.tmp-pipeline/lib/cn-etf-foundation.js");
 const { mergeObservations } = require("../.tmp-pipeline/lib/series-merge.js");
@@ -34,6 +35,11 @@ test("NAV 主源失败时回退 PCF", async () => {
   const result = await fetchCnEtfOfficialNav("2026-08-22T00:00:00Z", async () => (++calls === 1 ? Promise.reject(new Error("primary down")) : pcf));
   assert.equal(result.fallbackUsed, true);
   assert.equal(result.point.value, 9.2133);
+});
+
+test("产品页重复抓取保留首次观察时间", () => {
+  const point = parseHuaanProductNav(product, "2026-08-23T06:20:00Z");
+  assert.equal(preserveProductNavFirstObserved(point, "2026-08-23T06:08:00Z").publishedAt, "2026-08-23T06:08:00Z");
 });
 
 test("上交所份额校验代码并把万份换算成亿份", () => {

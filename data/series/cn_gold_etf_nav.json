@@ -1076,13 +1076,13 @@
       "frequency": "daily",
       "source": "华安基金官方",
       "source_url": "https://huaan.com.cn/funds/518880/index.shtml",
-      "fetched_at": "2026-08-23T06:08:16.050Z",
+      "fetched_at": "2026-08-23T06:20:18.179Z",
       "published_at": "2026-08-23T06:08:16.050Z",
       "nav_kind": "official_unit_nav",
       "note": "官方单位净值；产品页未披露精确发布时间，published_at 为本站首次观察时间"
     }
   ],
-  "last_fetched_at": "2026-08-23T06:08:16.050Z",
+  "last_fetched_at": "2026-08-23T06:20:18.179Z",
   "last_observation_date": "2026-08-21",
   "all_real": true
 }

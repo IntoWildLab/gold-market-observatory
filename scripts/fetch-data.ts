@@ -42,6 +42,7 @@ import {
   CN_ETF,
   type OfficialNavPoint,
   type DailySharesPoint,
+  preserveProductNavFirstObserved,
 } from "../lib/data-sources/cnEtf";
 import { buildEtfFoundationRows, latestFormalPremium } from "../lib/cn-etf-foundation";
 import { mergeObservations } from "../lib/series-merge";
@@ -612,6 +613,8 @@ async function fetchChinaEtfBlock(foundationOnly = false): Promise<void> {
     const existing = await readExisting("cn_gold_etf_nav");
     const points = new Map<string, OfficialNavPoint>();
     const latest = await fetchCnEtfOfficialNav(FETCHED_AT);
+    const previousLatest = existing?.observations.find((item) => item.observation_date === latest.point.date);
+    latest.point = preserveProductNavFirstObserved(latest.point, previousLatest?.published_at);
     points.set(latest.point.date, latest.point);
     const needsPublishedAtRepair = existing?.observations.some((item) =>
       item.source_url?.includes("/sgshqd.jsp") && item.published_at === item.observation_date
