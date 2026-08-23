@@ -2,7 +2,7 @@
 
 **黄金市场观察站**
 
-An open-source gold market observatory connecting global gold markets, China gold prices, ETF flows, macro factors, and central-bank demand.
+A gold market observatory connecting global gold markets, China gold prices, ETF flows, macro factors, and central bank demand.
 
 本项目面向黄金市场研究，尤其关注中国投资者所面对的人民币黄金与黄金 ETF 环境，将国际黄金、人民币汇率、Au99.99、黄金 ETF、实际利率、全球资金流与央行购金数据连接到同一观察框架中。
 
@@ -214,6 +214,10 @@ tests/        Data-contract, attribution, ETF, and quality-gate tests
 ## Contributing
 
 Issues and pull requests are welcome for bug reports, data-source improvements, documentation, and visualization enhancements.
+
+## Licensing Status
+
+The source code is publicly viewable while the project's formal open-source license and third-party data boundary are being finalized. Third-party market data snapshots and production-generated data outputs are not intended to be licensed as part of the source code.
 
 ## Disclaimer
 
