@@ -22,6 +22,24 @@ export interface EtfFoundationRow {
   priceShareRelationship: PriceShareRelationship | null;
 }
 
+export interface CnEtfFoundationData {
+  generated_at: string;
+  etf_code: "518880";
+  units: {
+    price: "cny_per_share";
+    nav: "cny_per_share";
+    shares: "hundred_million_shares";
+    estimated_aum: "cny";
+  };
+  methodology: {
+    premium_discount: string;
+    estimated_aum: string;
+    decomposition: string;
+  };
+  latest_formal_premium: EtfFoundationRow | null;
+  rows: EtfFoundationRow[];
+}
+
 function pct(current: number, prior: number): number | null {
   return prior > 0 ? ((current / prior) - 1) * 100 : null;
 }

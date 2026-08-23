@@ -10,6 +10,7 @@ import { periodReturns, trendState, yearPosition, latestChange, sumRange, type P
 import { computeAssessment, computeDrivers, type Assessment, type DriverRow } from "./scoring/score";
 import { computeChinaComparison, buildTheoreticalSeries, type ChinaComparison, type TheoreticalResult } from "./china";
 import type { ChinaGoldAttributionData, CnEtfTrackingData } from "./china-analysis";
+import type { CnEtfFoundationData } from "./cn-etf-foundation";
 
 export interface MacroKpi {
   seriesId: SeriesId;
@@ -112,6 +113,7 @@ export interface ChinaKpi {
     sharesValue: number | null;
     sharesDate: string | null;
     sharesNetFlow: number | null;
+    sharesChangePct: number | null;
     volumeShares: number | null;
     amount: number | null;
     source: string;
@@ -134,6 +136,7 @@ export interface PageData {
   theoretical: TheoreticalResult;
   chinaGoldAttribution: ChinaGoldAttributionData | null;
   cnGoldEtfTracking: CnEtfTrackingData | null;
+  cnGoldEtfFoundation: CnEtfFoundationData | null;
   chinaEtfLatest: LatestCnEtf | null;
   temperature: Assessment;
   drivers: DriverRow[];
@@ -297,13 +300,14 @@ export async function buildPageData(): Promise<PageData> {
   const etfFlowsUsd = (await loadDerived("gold-etf-flows-usd.json")) as { rows: Array<{ date: string; totalUsd: number }> } | null;
   const chinaGoldAttribution = (await loadDerived("china-gold-attribution.json")) as ChinaGoldAttributionData | null;
   const cnGoldEtfTracking = (await loadDerived("cn-gold-etf-tracking.json")) as CnEtfTrackingData | null;
+  const cnGoldEtfFoundation = (await loadDerived("cn-gold-etf-foundation.json")) as CnEtfFoundationData | null;
 
   // ---- 中国黄金层(本轮新增) ----
   const chinaEtfLatest = await loadLatestCnEtf();
   const au99File = series.au99_99;
   const usdcnyFile = series.usd_cny;
   const cnEtfFile = series.cn_gold_etf_price;
-  const cnSharesFile = series.cn_gold_etf_shares;
+  const cnSharesFile = series.cn_gold_etf_shares_daily;
   const au99Obs = au99File?.observations ?? [];
   const usdcnyObs = usdcnyFile?.observations ?? [];
   const cnEtfObs = cnEtfFile?.observations ?? [];
@@ -358,12 +362,15 @@ export async function buildPageData(): Promise<PageData> {
       sharesValue: cnSharesLast?.value ?? null,
       sharesDate: cnSharesLast?.observation_date ?? null,
       sharesNetFlow: cnSharesLast && cnSharesPrev ? cnSharesLast.value - cnSharesPrev.value : null,
+      sharesChangePct: cnSharesLast && cnSharesPrev && cnSharesPrev.value > 0
+        ? ((cnSharesLast.value / cnSharesPrev.value) - 1) * 100
+        : null,
       volumeShares: chinaEtfLatest?.volume_shares ?? null,
       amount: chinaEtfLatest?.amount ?? null,
       source: cnEtfFile?.meta.source.name ?? "—",
       sourceUrl: cnEtfFile?.meta.source.url ?? "",
       fetchedAt: cnEtfFile?.last_fetched_at ?? "",
-      note: "华安黄金ETF(518880)为国内黄金配置需求的代表性观察窗口, 非基金推荐; 份额为季度披露频率",
+      note: "华安黄金ETF(518880)为国内黄金配置需求的代表性观察窗口, 非基金推荐; 总份额为上交所日频披露",
     },
   };
 
@@ -400,6 +407,7 @@ export async function buildPageData(): Promise<PageData> {
     theoretical,
     chinaGoldAttribution,
     cnGoldEtfTracking,
+    cnGoldEtfFoundation,
     chinaEtfLatest,
     temperature,
     drivers,
