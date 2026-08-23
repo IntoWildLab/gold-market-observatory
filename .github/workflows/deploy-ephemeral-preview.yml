@@ -1,0 +1,266 @@
+name: Ephemeral Vercel Preview Deployment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-ephemeral-preview-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-preview:
+    name: Build and deploy an ephemeral Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify required repository secrets
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          missing=0
+          for name in FRED_API_KEY VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required repository secret ${name} is not configured."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Remove checked-in production snapshots
+        run: |
+          rm -rf data/series data/derived
+          rm -f data/latest-spot.json data/latest-cn-etf.json data/manifest.json
+          mkdir -p data/series data/derived
+
+      - name: Verify empty production-data baseline
+        run: |
+          if find data/series data/derived -type f -print -quit | grep -q .; then
+            echo "::error::Production series or derived snapshots remain before fetch."
+            exit 1
+          fi
+          for file in data/latest-spot.json data/latest-cn-etf.json data/manifest.json; do
+            if [ -e "$file" ]; then
+              echo "::error::Production file remains before fetch: $file"
+              exit 1
+            fi
+          done
+
+      - name: Fetch all production data
+        id: fetch
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: npm run data:fetch
+
+      - name: Verify complete ephemeral dataset
+        id: dataset
+        run: node scripts/validate-ephemeral-build.mjs data
+
+      - name: Run data quality gate
+        id: quality
+        run: npm run data:check
+
+      - name: Remove raw and probe staging before build
+        run: rm -rf data/raw scripts/probe-out scripts/probe-out2 scripts/probes/probe-out
+
+      - name: Verify raw and probe staging is absent
+        id: staging
+        run: |
+          for path in data/raw scripts/probe-out scripts/probe-out2 scripts/probes/probe-out; do
+            if [ -e "$path" ]; then
+              echo "::error::Staging path remains before build: $path"
+              exit 1
+            fi
+          done
+          echo "status=clean" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests
+        id: tests
+        run: npm test
+
+      - name: Run typecheck
+        id: typecheck
+        run: npm run typecheck
+
+      - name: Pull Vercel Preview project settings
+        id: vercel-pull
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@59.1.4 pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build Vercel Preview output
+        id: vercel-build
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@59.1.4 build --target=preview --token="$VERCEL_TOKEN"
+
+      - name: Verify Next.js build tracing
+        id: tracing
+        env:
+          EPHEMERAL_SECRET_TO_REJECT: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/validate-ephemeral-build.mjs trace
+
+      - name: Verify Vercel prebuilt output
+        id: output
+        env:
+          EPHEMERAL_SECRET_TO_REJECT: ${{ secrets.FRED_API_KEY }}
+        run: node scripts/validate-ephemeral-build.mjs vercel-output
+
+      - name: Verify existing Production deployment is established
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const productionHost = "gold-market-observatory.vercel.app";
+          const endpoint = new URL(`https://api.vercel.com/v13/deployments/${productionHost}`);
+          if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
+          const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
+          if (!response.ok) {
+            console.error("::error::Unable to verify the existing Production deployment before Preview deploy.");
+            process.exit(1);
+          }
+          const deployment = await response.json();
+          if (deployment.target !== "production" || deployment.projectId !== process.env.VERCEL_PROJECT_ID) {
+            console.error("::error::The established production alias does not match the configured Production project; refusing to deploy.");
+            process.exit(1);
+          }
+          console.log("Existing Production deployment verified; Preview deploy precondition passed.");
+          NODE
+
+      - name: Deploy prebuilt Preview
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          preview_url="$(npx --yes vercel@59.1.4 deploy --prebuilt --target=preview --token="$VERCEL_TOKEN")"
+          case "$preview_url" in
+            https://*.vercel.app) ;;
+            *)
+              echo "::error::Vercel CLI did not return a valid Preview deployment URL."
+              exit 1
+              ;;
+          esac
+          if [ "$preview_url" = "https://gold-market-observatory.vercel.app" ]; then
+            echo "::error::Deployment resolved to the Production alias; refusing to continue."
+            exit 1
+          fi
+          echo "url=$preview_url" >> "$GITHUB_OUTPUT"
+          echo "Preview deployment: $preview_url"
+
+      - name: Verify deployment classification
+        id: classification
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          const deploymentHost = new URL(process.env.PREVIEW_URL).hostname;
+          const endpoint = new URL(`https://api.vercel.com/v13/deployments/${deploymentHost}`);
+          if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
+          const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
+          if (!response.ok) {
+            console.error("::error::Unable to verify the new deployment classification.");
+            process.exit(1);
+          }
+          const deployment = await response.json();
+          const aliases = Array.isArray(deployment.alias) ? deployment.alias : [];
+          const previewTarget = deployment.target === "preview" || deployment.target == null;
+          if (!previewTarget || deployment.projectId !== process.env.VERCEL_PROJECT_ID || aliases.includes("gold-market-observatory.vercel.app")) {
+            console.error("::error::The new deployment is not an isolated Preview for the configured project.");
+            process.exit(1);
+          }
+          await import("node:fs/promises").then(({ appendFile }) =>
+            appendFile(process.env.GITHUB_OUTPUT, "status=preview\n", "utf8")
+          );
+          console.log("Deployment classification verified: Preview.");
+          NODE
+
+      - name: Smoke test Preview routes
+        id: smoke
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          for route in / /design/refined-v4; do
+            response_file="$(mktemp)"
+            npx --yes vercel@59.1.4 curl "$route" \
+              --deployment "$PREVIEW_URL" \
+              --token="$VERCEL_TOKEN" \
+              --silent --show-error --fail --location \
+              --output "$response_file"
+            if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
+              echo "::error::Preview route ${route} did not contain the stable project title."
+              rm -f "$response_file"
+              exit 1
+            fi
+            rm -f "$response_file"
+            echo "Smoke test passed: ${route}"
+          done
+
+      - name: Write deployment summary
+        if: always()
+        env:
+          FETCH_STATUS: ${{ steps.fetch.outcome }}
+          SERIES_COUNT: ${{ steps.dataset.outputs.series_count }}
+          DERIVED_COUNT: ${{ steps.dataset.outputs.derived_count }}
+          QUALITY_STATUS: ${{ steps.quality.outputs.status }}
+          QUALITY_OUTCOME: ${{ steps.quality.outcome }}
+          TEST_STATUS: ${{ steps.tests.outcome }}
+          TYPECHECK_STATUS: ${{ steps.typecheck.outcome }}
+          VERCEL_BUILD_STATUS: ${{ steps.vercel-build.outcome }}
+          TRACE_STATUS: ${{ steps.tracing.outputs.raw_status }}
+          OUTPUT_STATUS: ${{ steps.output.outputs.output_status }}
+          DEPLOY_STATUS: ${{ steps.deploy.outcome }}
+          CLASSIFICATION_STATUS: ${{ steps.classification.outputs.status }}
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+          SMOKE_STATUS: ${{ steps.smoke.outcome }}
+        run: |
+          {
+            echo "# Ephemeral Vercel Preview Deployment"
+            echo
+            echo "- Data fetch: **${FETCH_STATUS:-Not run}**"
+            echo "- Series count: **${SERIES_COUNT:-Not available}**"
+            echo "- Derived count: **${DERIVED_COUNT:-Not available}**"
+            echo "- Quality: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
+            echo "- Tests: **${TEST_STATUS:-Not run}**"
+            echo "- Typecheck: **${TYPECHECK_STATUS:-Not run}**"
+            echo "- Vercel build: **${VERCEL_BUILD_STATUS:-Not run}**"
+            echo "- Next.js output tracing: **${TRACE_STATUS:-Not run}**"
+            echo "- Vercel output verification: **${OUTPUT_STATUS:-Not run}**"
+            echo "- Preview deploy: **${DEPLOY_STATUS:-Not run}**"
+            echo "- Deployment classification: **${CLASSIFICATION_STATUS:-Not run}**"
+            echo "- Smoke test: **${SMOKE_STATUS:-Not run}**"
+            if [ -n "$PREVIEW_URL" ]; then
+              echo "- Preview URL: ${PREVIEW_URL}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,4 +1,4 @@
-import { appendFile, open, readFile, readdir } from "node:fs/promises";
+import { appendFile, open, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 const root = process.cwd();
@@ -127,6 +127,11 @@ async function listFiles(directory) {
     const fullPath = path.join(directory, entry.name);
     if (entry.isDirectory()) files.push(...await listFiles(fullPath));
     else if (entry.isFile()) files.push(fullPath);
+    else if (entry.isSymbolicLink()) {
+      const target = await stat(fullPath);
+      if (target.isDirectory()) files.push(...await listFiles(fullPath));
+      else if (target.isFile()) files.push(fullPath);
+    }
   }
   return files;
 }
@@ -191,11 +196,43 @@ async function validateTrace() {
   console.log(`Build trace complete: ${requiredRuntimeFiles.length} runtime data files present; raw, probe, environment, and secret checks passed.`);
 }
 
+async function validateVercelOutput() {
+  const outputDir = path.join(root, ".vercel", "output");
+  const outputFiles = await listFiles(outputDir);
+  const relativeFiles = outputFiles.map(projectRelative);
+  if (!relativeFiles.includes(".vercel/output/config.json")) {
+    throw new Error("Vercel Build Output API config.json is missing");
+  }
+
+  const missing = requiredRuntimeFiles.filter((required) =>
+    !relativeFiles.some((file) => file === required || file.endsWith(`/${required}`))
+  );
+  if (missing.length) throw new Error(`Required runtime data is absent from .vercel/output: ${missing.join(", ")}`);
+
+  const forbidden = relativeFiles.filter((file) =>
+    file.includes("/data/raw/")
+      || file.includes("/probe-out/")
+      || /(^|\/)\.env(?:\.|$)/.test(file)
+  );
+  if (forbidden.length) throw new Error(`Forbidden staging or environment files are present in .vercel/output: ${forbidden.join(", ")}`);
+
+  const secret = process.env.EPHEMERAL_SECRET_TO_REJECT;
+  if (!secret) throw new Error("EPHEMERAL_SECRET_TO_REJECT is required for Vercel output secret scanning");
+  const needle = Buffer.from(secret);
+  for (const file of outputFiles) {
+    if (await fileContains(file, needle)) throw new Error("The FRED_API_KEY value was found in .vercel/output");
+  }
+
+  await writeOutputs({ output_status: "clean" });
+  console.log(`Vercel output complete: ${requiredRuntimeFiles.length} runtime data files present; raw, probe, environment, and secret checks passed.`);
+}
+
 const mode = process.argv[2];
 try {
   if (mode === "data") await validateData();
   else if (mode === "trace") await validateTrace();
-  else throw new Error("Usage: node scripts/validate-ephemeral-build.mjs <data|trace>");
+  else if (mode === "vercel-output") await validateVercelOutput();
+  else throw new Error("Usage: node scripts/validate-ephemeral-build.mjs <data|trace|vercel-output>");
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }
