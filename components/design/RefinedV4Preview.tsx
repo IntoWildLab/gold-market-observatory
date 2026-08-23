@@ -97,7 +97,7 @@ function InternationalGoldSummary({ data: d }: { data: DesignData }) {
   const r20 = d.gold.periodReturns.find((row) => row.window === "20D");
   const secondary = d.gold.periodReturns.filter((row) => !["1D", "20D"].includes(row.window));
   return (
-    <Card className="min-w-0 p-4 sm:p-5">
+    <Card className="min-w-0 p-3.5 sm:p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -108,13 +108,13 @@ function InternationalGoldSummary({ data: d }: { data: DesignData }) {
         </div>
         <span className="hidden rounded px-1.5 py-px text-[13px] text-[#7d766a] sm:inline" style={{ background: "#f0ede6" }}>历史: LBMA 定盘</span>
       </div>
-      <div className="mt-3 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-1">
+      <div className="mt-2.5 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-1">
         <span className="min-w-0 font-mono text-[2.35rem] font-bold leading-none sm:text-5xl" style={{ color: T.gold }}>{fmt(d.gold.latestSpot?.price_usd)}</span>
         <span className="mb-0.5 font-mono text-lg font-bold" style={{ color: upDown(d.gold.dailyChangePct) }}>
           {d.gold.dailyChangePct === null ? "—" : `${d.gold.dailyChangePct >= 0 ? "▲" : "▼"} ${pct(d.gold.dailyChangePct)}`}
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-3 divide-x rounded-lg border py-2 text-center" style={{ borderColor: T.border }}>
+      <div className="mt-3 grid grid-cols-3 divide-x rounded-lg border py-1.5 text-center" style={{ borderColor: T.border }}>
         <div className="px-2">
           <div className="text-[12px] text-[#a8a193]">近20日</div>
           <div className="font-mono text-[15px] font-bold" style={{ color: upDown(r20?.changePct) }}>{pct(r20?.changePct)}</div>
@@ -156,7 +156,7 @@ function CoreGoldTrendChart({ data: d }: { data: DesignData }) {
   return (
     <Card className="min-w-0 p-3 sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-1">
-        <div><span className="text-sm font-semibold">核心黄金走势</span><span className="ml-2 text-[12px] text-[#a8a193]">GLOBAL → CHINA → INVEST</span></div>
+        <span className="text-sm font-semibold">核心黄金走势</span>
         <span className="text-[12px] text-[#a8a193]">{selected.title} · {selected.unit}</span>
       </div>
       <div className="mt-2 grid grid-cols-3 rounded-lg border bg-[#faf8f2] p-1" style={{ borderColor: T.border }} aria-label="核心黄金走势数据系列">
@@ -172,9 +172,8 @@ function CoreGoldTrendChart({ data: d }: { data: DesignData }) {
           </button>
         ))}
       </div>
-      <div className="mt-2 flex items-baseline justify-between gap-2">
+      <div className="mt-2 min-w-0">
         <div className="min-w-0"><div className="truncate text-[13px] font-semibold">{selected.title}</div><div className="truncate text-[11px] text-[#a8a193]">{selected.sub}</div></div>
-        <span className="shrink-0 rounded px-1.5 py-px text-[11px]" style={{ background: T.goldSoft, color: T.gold }}>默认 Au99.99</span>
       </div>
       <V4AreaChart key={seriesId} points={points} color={selected.color} unit={selected.unit} defaultRange="1Y" heightClassName="h-[190px] lg:h-[270px]" />
     </Card>
@@ -209,7 +208,7 @@ function Au9999BenchmarkCard({ data: d }: { data: DesignData }) {
   return (
     <Card className="min-w-0 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div><div className="text-base font-semibold">Au99.99</div><div className="text-[12px] font-medium" style={{ color: T.au99 }}>中国人民币黄金基准</div></div>
+        <div><div className="text-base font-semibold">Au99.99</div><div className="text-[12px] font-medium" style={{ color: T.au99 }}>中国人民币黄金基准</div><div className="text-[11px] text-[#a8a193]">上海黄金交易所人民币黄金现货参考</div></div>
         <div className="text-right text-[12px] text-[#a8a193]">{d.china.au99.date ?? "—"}<br />上海黄金交易所</div>
       </div>
       <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
@@ -265,20 +264,20 @@ function CnEtfInvestorCard({ data: d }: { data: DesignData }) {
         <InvestorMetric label="官方 NAV" value={etf.official_nav === null ? "—" : `${fmt(etf.official_nav, 4)} 元`} note={etf.nav_date ?? "暂无日期"} />
         <InvestorMetric label="正式同日折溢价" value={etf.formal_premium_available ? pct(etf.premium_discount_pct) : "暂无正式值"} note={premiumExplanation(etf.premium_discount_pct, etf.formal_premium_available, etf.alignment_status)} valueColor={etf.formal_premium_available ? upDown(etf.premium_discount_pct) : T.faint} />
         <InvestorMetric label="20D 份额变化" value={pct(etf.shares_change_windows_pct["20D"])} valueColor={upDown(etf.shares_change_windows_pct["20D"])} />
-        <InvestorMetric label="20D Tracking" value={pp(tracking20?.tracking_difference_pp)} note={trackingExplanation(tracking20?.tracking_difference_pp)} valueColor={upDown(tracking20?.tracking_difference_pp)} />
+        <InvestorMetric label="20D 跟踪偏离" value={pp(tracking20?.tracking_difference_pp)} note={trackingExplanation(tracking20?.tracking_difference_pp)} valueColor={upDown(tracking20?.tracking_difference_pp)} />
       </div>
-      <ResponsiveDisclosure label="查看规模、份额与Tracking详情">
+      <ResponsiveDisclosure label="查看规模、份额与跟踪偏离详情">
         <div className="grid grid-cols-2 gap-2 text-[12px]">
           <InvestorMetric label="Estimated AUM" value={`${compactCny(etf.estimated_aum_cny)} 元`} />
           <InvestorMetric label="日度总份额" value={`${fmt(etf.total_shares)} 亿份`} note={etf.shares_date ?? "—"} />
           <InvestorMetric label="5D / 60D份额" value={`${pct(etf.shares_change_windows_pct["5D"])} / ${pct(etf.shares_change_windows_pct["60D"])}`} />
-          <InvestorMetric label="60D Tracking" value={pp(tracking60?.tracking_difference_pp)} />
-          <InvestorMetric label="5D Tracking" value={pp(tracking5?.tracking_difference_pp)} />
+          <InvestorMetric label="60D 跟踪偏离" value={pp(tracking60?.tracking_difference_pp)} />
+          <InvestorMetric label="5D 跟踪偏离" value={pp(tracking5?.tracking_difference_pp)} />
           <InvestorMetric label="MarketEffect" value={`${compactCny(etf.estimated_market_effect_cny)} 元`} />
           <InvestorMetric label="ShareEffect" value={`${compactCny(etf.estimated_share_flow_cny)} 元`} />
           <InvestorMetric label="分解闭合残差" value={`${fmt(etf.decomposition_closure_residual_cny, 2)} 元`} />
         </div>
-        <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">Tracking 使用官方 NAV 对比 Au99.99；Au99.99 为中国黄金现货代理基准（benchmark_is_proxy = true）。所有数值直接来自 DesignData，不在组件内重算。</p>
+        <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">跟踪偏离使用官方 NAV 收益减去 Au99.99 收益；Au99.99 为中国黄金现货代理基准（benchmark_is_proxy = true）。所有数值直接来自 DesignData，不在组件内重算。</p>
       </ResponsiveDisclosure>
     </Card>
   );
@@ -471,7 +470,7 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
         {/* ===== 第二屏: 全球黄金 ETF / 资金环境 ===== */}
         <section>
           <SectionTitle k="02 · FLOW" t="全球黄金 ETF / 资金环境" sub="全球ETF为核心 · GLD为辅助确认" />
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
             <div className="space-y-4">
               <Card className="p-4">
                 <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">全球黄金ETF持仓<span className="ml-1.5 rounded px-1 py-px text-[13px]" style={{ background: T.goldSoft, color: T.gold }}>核心</span></div>
@@ -506,19 +505,33 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
                   <span className="text-[#7d766a]">近12周 <b className="font-mono text-[#2b2a26]" style={{ color: upDown(d.etf.flowsSum12w) }}>{d.etf.flowsSum12w === null ? "—" : `${d.etf.flowsSum12w >= 0 ? "+" : ""}${fmt(d.etf.flowsSum12w, 1)} 吨`}</b></span>
                 </div>
                 <div className="mt-2">
-                  <V4AreaChart points={byId("gold_etf_flows")} color={T.flow} unit="吨" height={140} ranges={["3M", "6M", "1Y"]} bar />
+                  <V4AreaChart points={byId("gold_etf_flows")} color={T.flow} unit="吨" height={125} ranges={["3M", "6M", "1Y"]} bar />
                 </div>
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 lg:col-span-2">
-              <Card className="p-4">
+            <div className="lg:hidden">
+              <ResponsiveDisclosure label="查看全球ETF地区结构">
+                <div className="space-y-3">
+                  <Card className="p-3.5">
+                    <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">当前结构 · 全球黄金ETF持仓分布</div>
+                    <div className="mt-2"><V4Donut rows={d.etfRegional} /></div>
+                  </Card>
+                  <Card className="p-3.5">
+                    <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">历史结构 · 各地区份额占比变化</div>
+                    <div className="mt-2"><V4ShareStack rows={d.etfRegional} /></div>
+                  </Card>
+                </div>
+              </ResponsiveDisclosure>
+            </div>
+            <div className="hidden grid-cols-2 gap-4 lg:col-span-2 lg:grid">
+              <Card className="p-3.5">
                 <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">当前结构 · 全球黄金ETF持仓分布</div>
-                <div className="mt-3"><V4Donut rows={d.etfRegional} /></div>
+                <div className="mt-2"><V4Donut rows={d.etfRegional} /></div>
               </Card>
-              <Card className="p-4">
+              <Card className="p-3.5">
                 <div className="text-[13px] font-semibold uppercase tracking-wider text-[#a8a193]">历史结构 · 各地区份额占比变化</div>
-                <div className="mt-3"><V4ShareStack rows={d.etfRegional} /></div>
+                <div className="mt-2"><V4ShareStack rows={d.etfRegional} /></div>
               </Card>
             </div>
           </div>
