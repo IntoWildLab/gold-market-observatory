@@ -14,7 +14,17 @@ The repository root route still contains an earlier interface. Use the Refined V
 
 ## Preview
 
-Desktop and mobile preview images will be added under `docs/screenshots/` after final production capture.
+### Desktop Preview
+
+![Gold Market Observatory Refined V4 desktop preview](docs/screenshots/desktop-refined-v4.png)
+
+The desktop view presents the GLOBAL → CHINA → INVEST research framework, with Au99.99 selected in the core gold trend chart and the China gold benchmark, RMB gold return attribution, and representative 518880 ETF summary shown alongside it.
+
+### Mobile Preview
+
+![Gold Market Observatory Refined V4 mobile preview](docs/screenshots/mobile-refined-v4.jpg)
+
+The mobile view uses a readable single-column path from XAU/USD through Au99.99 and 518880 to return attribution and the core trend chart, with secondary information organized through progressive disclosure.
 
 ## Why This Project
 
