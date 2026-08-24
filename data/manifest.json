@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T22:41:55.892Z",
+  "generated_at": "2026-08-24T22:47:29.409Z",
   "series": [
     {
       "series": "au99_99",
@@ -11,7 +11,7 @@
       "is_proxy_of": null,
       "observations": 733,
       "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -24,7 +24,7 @@
       "is_proxy_of": null,
       "observations": 66,
       "last_observation_date": "2026-06-30",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -37,7 +37,7 @@
       "is_proxy_of": null,
       "observations": 23,
       "last_observation_date": "2026-03-31",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -50,7 +50,7 @@
       "is_proxy_of": null,
       "observations": 23,
       "last_observation_date": "2026-03-31",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -61,9 +61,9 @@
       "source": "华安基金官方",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 82,
-      "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 83,
+      "last_observation_date": "2026-08-24",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -74,9 +74,9 @@
       "source": "腾讯行情(上交所挂牌数据)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 525,
-      "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 526,
+      "last_observation_date": "2026-08-24",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -89,7 +89,7 @@
       "is_proxy_of": null,
       "observations": 55,
       "last_observation_date": "2026-06-30",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -100,9 +100,9 @@
       "source": "上海证券交易所",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 81,
-      "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 82,
+      "last_observation_date": "2026-08-24",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -113,9 +113,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": "DXY (ICE 美元指数)",
-      "observations": 751,
-      "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 756,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -126,9 +126,9 @@
       "source": "SPDR Gold Shares (State Street Global Advisors)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 5471,
-      "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 5472,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -139,9 +139,9 @@
       "source": "World Gold Council",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 450,
-      "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 451,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -152,9 +152,9 @@
       "source": "World Gold Council",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 1222,
-      "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 1223,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -167,7 +167,7 @@
       "is_proxy_of": null,
       "observations": 759,
       "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -178,9 +178,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 755,
-      "last_observation_date": "2026-08-21",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 756,
+      "last_observation_date": "2026-08-24",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -191,9 +191,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 754,
-      "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 755,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -204,9 +204,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 754,
-      "last_observation_date": "2026-08-20",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 755,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     },
     {
@@ -217,9 +217,9 @@
       "source": "FRED (St. Louis Fed)",
       "requires_api_key": false,
       "is_proxy_of": null,
-      "observations": 751,
-      "last_observation_date": "2026-08-14",
-      "last_fetched_at": "2026-08-23T22:41:55.892Z",
+      "observations": 756,
+      "last_observation_date": "2026-08-21",
+      "last_fetched_at": "2026-08-24T22:47:29.409Z",
       "all_real": true
     }
   ]

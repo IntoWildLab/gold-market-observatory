@@ -1080,9 +1080,22 @@
       "published_at": "2026-08-23T06:08:16.050Z",
       "nav_kind": "official_unit_nav",
       "note": "官方单位净值；产品页未披露精确发布时间，published_at 为本站首次观察时间"
+    },
+    {
+      "series": "cn_gold_etf_nav",
+      "observation_date": "2026-08-24",
+      "value": 9.5559,
+      "unit": "cny_per_share",
+      "frequency": "daily",
+      "source": "华安基金官方",
+      "source_url": "https://huaan.com.cn/funds/518880/index.shtml",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "published_at": "2026-08-24T22:47:29.409Z",
+      "nav_kind": "official_unit_nav",
+      "note": "官方单位净值；产品页未披露精确发布时间，published_at 为本站首次观察时间"
     }
   ],
-  "last_fetched_at": "2026-08-23T22:41:55.892Z",
-  "last_observation_date": "2026-08-21",
+  "last_fetched_at": "2026-08-24T22:47:29.409Z",
+  "last_observation_date": "2026-08-24",
   "all_real": true
 }

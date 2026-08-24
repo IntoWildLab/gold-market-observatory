@@ -8274,9 +8274,64 @@
       "source_url": "https://fred.stlouisfed.org/series/DEXCHUS",
       "fetched_at": "2026-08-18T23:01:12.149Z",
       "note": "美元兑人民币 (美联储 H.10 即期汇率, 人民币/美元)"
+    },
+    {
+      "series": "usd_cny",
+      "observation_date": "2026-08-17",
+      "value": 6.7399,
+      "unit": "cny_per_usd",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DEXCHUS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元兑人民币 (美联储 H.10 即期汇率, 人民币/美元)"
+    },
+    {
+      "series": "usd_cny",
+      "observation_date": "2026-08-18",
+      "value": 6.743,
+      "unit": "cny_per_usd",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DEXCHUS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元兑人民币 (美联储 H.10 即期汇率, 人民币/美元)"
+    },
+    {
+      "series": "usd_cny",
+      "observation_date": "2026-08-19",
+      "value": 6.7295,
+      "unit": "cny_per_usd",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DEXCHUS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元兑人民币 (美联储 H.10 即期汇率, 人民币/美元)"
+    },
+    {
+      "series": "usd_cny",
+      "observation_date": "2026-08-20",
+      "value": 6.7225,
+      "unit": "cny_per_usd",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DEXCHUS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元兑人民币 (美联储 H.10 即期汇率, 人民币/美元)"
+    },
+    {
+      "series": "usd_cny",
+      "observation_date": "2026-08-21",
+      "value": 6.721,
+      "unit": "cny_per_usd",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DEXCHUS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元兑人民币 (美联储 H.10 即期汇率, 人民币/美元)"
     }
   ],
-  "last_fetched_at": "2026-08-23T22:41:55.892Z",
-  "last_observation_date": "2026-08-14",
+  "last_fetched_at": "2026-08-24T22:47:29.409Z",
+  "last_observation_date": "2026-08-21",
   "all_real": true
 }

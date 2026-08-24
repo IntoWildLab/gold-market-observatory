@@ -1,7 +1,7 @@
 {
   "series": "gold_etf_holdings",
   "frequency": "weekly",
-  "fetched_at": "2026-08-23T22:41:55.892Z",
+  "fetched_at": "2026-08-24T22:47:29.409Z",
   "rows": [
     {
       "date": "2003-02-28",
@@ -10978,28 +10978,37 @@
       "date": "2026-07-31",
       "northAmerica": 2034.9,
       "europe": 1446.3,
-      "asia": 512.33,
+      "asia": 512.39,
       "other": 74.45,
-      "total": 4067.9799999999996,
+      "total": 4068.0399999999995,
       "goldUsdOz": 4047.14
     },
     {
       "date": "2026-08-07",
       "northAmerica": 2042.85,
       "europe": 1455.28,
-      "asia": 517.99,
+      "asia": 518.05,
       "other": 74.41,
-      "total": 4090.5299999999997,
+      "total": 4090.59,
       "goldUsdOz": 4184.47
     },
     {
       "date": "2026-08-14",
       "northAmerica": 2050.22,
       "europe": 1470.42,
-      "asia": 519.07,
+      "asia": 519.13,
       "other": 74.41,
-      "total": 4114.12,
+      "total": 4114.18,
       "goldUsdOz": 4379.63
+    },
+    {
+      "date": "2026-08-21",
+      "northAmerica": 2080.6,
+      "europe": 1484.24,
+      "asia": 521.27,
+      "other": 74.77,
+      "total": 4160.88,
+      "goldUsdOz": 4467.01
     }
   ]
 }

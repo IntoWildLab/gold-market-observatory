@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-23T22:41:55.892Z",
+  "generated_at": "2026-08-24T22:47:29.409Z",
   "etf_code": "518880",
   "units": {
     "price": "cny_per_share",
@@ -13,22 +13,22 @@
     "decomposition": "symmetric midpoint: market=(Q1+Q0)/2×(N1-N0); shares=(N1+N0)/2×(Q1-Q0)"
   },
   "latest_formal_premium": {
-    "date": "2026-08-21",
-    "price": 9.388,
-    "nav": 9.3598,
-    "navDate": "2026-08-21",
-    "sharesHundredMillion": 115.16840800000001,
+    "date": "2026-08-24",
+    "price": 9.564,
+    "nav": 9.5559,
+    "navDate": "2026-08-24",
+    "sharesHundredMillion": 116.678408,
     "alignmentStatus": "same_date",
-    "premiumDiscountPct": 0.3012884890702727,
-    "estimatedAumCny": 107795326519.84001,
-    "sharesChange5dPct": 0.9245188786229264,
-    "sharesChange20dPct": 6.51274756116933,
-    "sharesChange60dPct": 2.321523280338522,
-    "shareChangeStreakDays": 2,
-    "marketEffectCny": 1673900327.1999958,
-    "shareEffectCny": 1688294790.0000176,
-    "aumChangeCny": 3362195117.200012,
-    "decompositionResidualCny": -0.0000011920928955078125,
+    "premiumDiscountPct": 0.08476438640003803,
+    "estimatedAumCny": 111496719900.71999,
+    "sharesChange5dPct": 2.5875846860284657,
+    "sharesChange20dPct": 7.759769792141613,
+    "sharesChange60dPct": 4.2847793411929125,
+    "shareChangeStreakDays": 3,
+    "marketEffectCny": 2273258030.8799944,
+    "shareEffectCny": 1428135349.999982,
+    "aumChangeCny": 3701393380.8799744,
+    "decompositionResidualCny": -0.0000021457672119140625,
     "priceShareRelationship": "same_direction"
   },
   "rows": [
@@ -1588,6 +1588,25 @@
       "shareEffectCny": 1688294790.0000176,
       "aumChangeCny": 3362195117.200012,
       "decompositionResidualCny": -0.0000011920928955078125,
+      "priceShareRelationship": "same_direction"
+    },
+    {
+      "date": "2026-08-24",
+      "price": 9.564,
+      "nav": 9.5559,
+      "navDate": "2026-08-24",
+      "sharesHundredMillion": 116.678408,
+      "alignmentStatus": "same_date",
+      "premiumDiscountPct": 0.08476438640003803,
+      "estimatedAumCny": 111496719900.71999,
+      "sharesChange5dPct": 2.5875846860284657,
+      "sharesChange20dPct": 7.759769792141613,
+      "sharesChange60dPct": 4.2847793411929125,
+      "shareChangeStreakDays": 3,
+      "marketEffectCny": 2273258030.8799944,
+      "shareEffectCny": 1428135349.999982,
+      "aumChangeCny": 3701393380.8799744,
+      "decompositionResidualCny": -0.0000021457672119140625,
       "priceShareRelationship": "same_direction"
     }
   ]

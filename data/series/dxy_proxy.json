@@ -8276,9 +8276,64 @@
       "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
       "fetched_at": "2026-08-18T23:01:12.149Z",
       "note": "美元指数代理: 美联储广义美元指数 (1973年3月=100)"
+    },
+    {
+      "series": "dxy_proxy",
+      "observation_date": "2026-08-17",
+      "value": 118.814,
+      "unit": "index",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元指数代理: 美联储广义美元指数 (1973年3月=100)"
+    },
+    {
+      "series": "dxy_proxy",
+      "observation_date": "2026-08-18",
+      "value": 118.9831,
+      "unit": "index",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元指数代理: 美联储广义美元指数 (1973年3月=100)"
+    },
+    {
+      "series": "dxy_proxy",
+      "observation_date": "2026-08-19",
+      "value": 118.3328,
+      "unit": "index",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元指数代理: 美联储广义美元指数 (1973年3月=100)"
+    },
+    {
+      "series": "dxy_proxy",
+      "observation_date": "2026-08-20",
+      "value": 118.2548,
+      "unit": "index",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元指数代理: 美联储广义美元指数 (1973年3月=100)"
+    },
+    {
+      "series": "dxy_proxy",
+      "observation_date": "2026-08-21",
+      "value": 118.0628,
+      "unit": "index",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DTWEXBGS",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美元指数代理: 美联储广义美元指数 (1973年3月=100)"
     }
   ],
-  "last_fetched_at": "2026-08-23T22:41:55.892Z",
-  "last_observation_date": "2026-08-14",
+  "last_fetched_at": "2026-08-24T22:47:29.409Z",
+  "last_observation_date": "2026-08-21",
   "all_real": true
 }

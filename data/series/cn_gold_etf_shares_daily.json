@@ -1148,9 +1148,23 @@
       "raw_unit": "万份",
       "security_code": "518880",
       "note": "上交所基金规模数据 TOT_VOL，原始单位万份；统一值=原始值÷10,000 亿份"
+    },
+    {
+      "series": "cn_gold_etf_shares_daily",
+      "observation_date": "2026-08-24",
+      "value": 116.678408,
+      "unit": "hundred_million_shares",
+      "frequency": "daily",
+      "source": "上海证券交易所",
+      "source_url": "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "raw_value": 1166784.08,
+      "raw_unit": "万份",
+      "security_code": "518880",
+      "note": "上交所基金规模数据 TOT_VOL，原始单位万份；统一值=原始值÷10,000 亿份"
     }
   ],
-  "last_fetched_at": "2026-08-23T22:41:55.892Z",
-  "last_observation_date": "2026-08-21",
+  "last_fetched_at": "2026-08-24T22:47:29.409Z",
+  "last_observation_date": "2026-08-24",
   "all_real": true
 }

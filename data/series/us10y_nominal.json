@@ -8307,9 +8307,20 @@
       "source_url": "https://fred.stlouisfed.org/series/DGS10",
       "fetched_at": "2026-08-21T22:44:59.684Z",
       "note": "美国10年期名义国债收益率"
+    },
+    {
+      "series": "us10y_nominal",
+      "observation_date": "2026-08-21",
+      "value": 4.74,
+      "unit": "percent",
+      "frequency": "daily",
+      "source": "FRED (St. Louis Fed)",
+      "source_url": "https://fred.stlouisfed.org/series/DGS10",
+      "fetched_at": "2026-08-24T22:47:29.409Z",
+      "note": "美国10年期名义国债收益率"
     }
   ],
-  "last_fetched_at": "2026-08-23T22:41:55.892Z",
-  "last_observation_date": "2026-08-20",
+  "last_fetched_at": "2026-08-24T22:47:29.409Z",
+  "last_observation_date": "2026-08-21",
   "all_real": true
 }
