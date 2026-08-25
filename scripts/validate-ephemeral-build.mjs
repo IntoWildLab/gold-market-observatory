@@ -215,13 +215,41 @@ function slashPath(file) {
   return file.split(path.sep).join("/");
 }
 
+function isEnvExamplePath(file) {
+  return path.posix.basename(slashPath(file)) === ".env.example";
+}
+
 function isForbiddenRuntimePath(file) {
+  if (isEnvExamplePath(file)) return false;
   return file === "data/raw"
     || file.startsWith("data/raw/")
     || file === "scripts/probe-out"
     || file.startsWith("scripts/probe-out/")
     || file.includes("/probe-out/")
     || /(^|\/)\.env(?:\.|$)/.test(file);
+}
+
+function isExplicitExamplePlaceholder(value) {
+  const unquoted = value.length >= 2 && value[0] === value.at(-1) && ["'", '"'].includes(value[0])
+    ? value.slice(1, -1).trim()
+    : value;
+  if (!unquoted) return true;
+  return /^(?:example|placeholder|changeme|replace[-_]?me|dummy|sample|test)$/i.test(unquoted)
+    || /^your(?:[-_][a-z0-9]+)+(?:[-_]here)?$/i.test(unquoted)
+    || /^<(?:your|example|placeholder|replace[-_]?me)(?:[-_ ][a-z0-9]+)*>$/i.test(unquoted);
+}
+
+async function validateEnvExample(file) {
+  const contents = await readFile(file, "utf8");
+  for (const [index, line] of contents.split(/\r?\n/).entries()) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const assignment = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(trimmed);
+    if (!assignment) throw new Error(`Unsafe .env.example syntax at line ${index + 1}`);
+    if (!isExplicitExamplePlaceholder(assignment[2].trim())) {
+      throw new Error(`Unsafe non-placeholder value for ${assignment[1]} in .env.example at line ${index + 1}`);
+    }
+  }
 }
 
 async function readFunctionBundle(bundleDir, rootDir) {
@@ -249,7 +277,15 @@ async function readFunctionBundle(bundleDir, rootDir) {
       return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
     });
 
-  return { physicalFiles, mappedSourceFiles, runtimePaths };
+  const envExampleFiles = new Set(physicalFiles.filter((file) => isEnvExamplePath(path.relative(bundleDir, file))));
+  for (const [source, target] of Object.entries(filePathMap)) {
+    if (typeof source !== "string" || typeof target !== "string" || !isEnvExamplePath(target)) continue;
+    const resolved = path.resolve(rootDir, source);
+    const relative = path.relative(rootDir, resolved);
+    if (relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative)) envExampleFiles.add(resolved);
+  }
+
+  return { physicalFiles, mappedSourceFiles, runtimePaths, envExampleFiles };
 }
 
 async function dataTraceEntrypoints(rootDir) {
@@ -295,6 +331,7 @@ export async function validateVercelOutput({
   const mappedDataEntrypoints = new Set();
   const dataBundles = [];
   const scanFiles = new Set(outputFiles);
+  const envExampleFiles = new Set(outputFiles.filter((file) => isEnvExamplePath(path.relative(outputDir, file))));
   for (const bundleDir of bundleDirs) {
     const bundle = await readFunctionBundle(bundleDir, rootDir);
     const bundleName = slashPath(path.relative(functionsDir, bundleDir));
@@ -303,6 +340,7 @@ export async function validateVercelOutput({
       throw new Error(`Forbidden staging or environment files are present in Vercel function ${bundleName}: ${forbidden.join(", ")}`);
     }
     for (const file of bundle.mappedSourceFiles) scanFiles.add(file);
+    for (const file of bundle.envExampleFiles) envExampleFiles.add(file);
 
     const bundleDataEntrypoints = [...tracedDataEntrypoints].filter((file) => bundle.runtimePaths.has(file));
     for (const entrypoint of bundleDataEntrypoints) mappedDataEntrypoints.add(entrypoint);
@@ -327,6 +365,8 @@ export async function validateVercelOutput({
     isForbiddenRuntimePath(file.replace(/^\.vercel\/output\/functions\/[^/]+\.func\//, ""))
   );
   if (forbidden.length) throw new Error(`Forbidden staging or environment files are present in .vercel/output: ${forbidden.join(", ")}`);
+
+  for (const file of envExampleFiles) await validateEnvExample(file);
 
   if (!secret) throw new Error("EPHEMERAL_SECRET_TO_REJECT is required for Vercel output secret scanning");
   const needle = Buffer.from(secret);

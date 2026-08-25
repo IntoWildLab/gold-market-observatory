@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { mkdtemp, mkdir, rm, writeFile } = require("node:fs/promises");
+const { mkdtemp, mkdir, readFile, rm, writeFile } = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
@@ -110,13 +110,52 @@ test("fails when raw staging is present", async () => {
   });
 });
 
-test("fails when an environment file is present", async () => {
+test("allows a safe mapped .env.example with empty values and explicit placeholders", async () => {
   await withFixture({}, async ({ rootDir, bundleDir }) => {
     const { validateVercelOutput } = await loadValidator();
-    await writeFile(path.join(bundleDir, ".env.production"), "SAFE_NAME=value");
-    await assert.rejects(validateVercelOutput({ rootDir, secret, emitOutputs: false }), /environment files/);
+    await writeFile(path.join(rootDir, ".env.example"), [
+      "# Safe configuration template",
+      "FRED_API_KEY=",
+      "OPTIONAL_TOKEN=<your-token-here>",
+      "SAMPLE_PASSWORD=replace_me",
+      "",
+    ].join("\n"));
+    const configPath = path.join(bundleDir, ".vc-config.json");
+    const config = JSON.parse(await readFile(configPath, "utf8"));
+    config.filePathMap[".env.example"] = ".env.example";
+    await writeFile(configPath, JSON.stringify(config));
+    const result = await validateVercelOutput({ rootDir, secret, emitOutputs: false });
+    assert.equal(result.dataBundleCount, 1);
   });
 });
+
+test("fails when .env.example contains a non-placeholder secret-like value", async () => {
+  await withFixture({}, async ({ rootDir, bundleDir }) => {
+    const { validateVercelOutput } = await loadValidator();
+    await writeFile(path.join(bundleDir, ".env.example"), "API_KEY=nonplaceholdervalue1234567890abcdef");
+    await assert.rejects(
+      validateVercelOutput({ rootDir, secret, emitOutputs: false }),
+      /Unsafe non-placeholder value for API_KEY/,
+    );
+  });
+});
+
+for (const environmentFile of [
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.preview.local",
+  ".env.example.local",
+  ".env.production.example",
+]) {
+  test(`fails when ${environmentFile} is present`, async () => {
+    await withFixture({}, async ({ rootDir, bundleDir }) => {
+      const { validateVercelOutput } = await loadValidator();
+      await writeFile(path.join(bundleDir, environmentFile), "SAFE_NAME=value");
+      await assert.rejects(validateVercelOutput({ rootDir, secret, emitOutputs: false }), /environment files/);
+    });
+  });
+}
 
 test("fails when the rejected secret value is present", async () => {
   await withFixture({}, async ({ rootDir, bundleDir }) => {
