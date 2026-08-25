@@ -7,14 +7,15 @@
  * 数据源(均为公开金融数据接口):
  * - 日K(价格/成交量): 腾讯行情 API(上交所挂牌行情汇总)
  * - 实时报价(当日涨跌/成交额): 新浪财经行情(GBK 编码)
- * - 份额(季度): 东方财富基金公开数据(基金公司定期披露的期末总份额)
+ * - 日度份额: 上海证券交易所基金规模公开查询(TOT_VOL)
+ * - 季度份额: 东方财富基金公开数据(基金公司定期披露的期末总份额)
  *
  * 限制(诚实标注):
- * - 份额为季度披露频率, 不是日度; 不要把它显示成日度数据。
+ * - 日度份额与季度份额是不同披露口径, 不得互相回填。
  * - 价格/成交为交易所行情; 成交量为手(1手=100份)。
  */
 
-import { httpGetJson, httpGetText, httpGetTextEncoded, parseNum } from "./http";
+import { HttpError, httpGetJson, httpGetText, httpGetTextEncoded, parseNum, sleep, type HttpOptions } from "./http";
 
 export const CN_ETF = {
   code: "518880",
@@ -160,6 +161,9 @@ export function preserveProductNavFirstObserved(point: OfficialNavPoint, previou
 const HUAAN_PRODUCT_URL = "https://huaan.com.cn/funds/518880/index.shtml";
 const HUAAN_PCF_URL = "https://huaan.com.cn/etf/518880/sgshqd.jsp";
 const SSE_QUERY_URL = "https://query.sse.com.cn/commonQuery.do";
+const SSE_SHARES_ENDPOINT_LABEL = "query.sse.com.cn/commonQuery.do";
+const SSE_SHARES_ATTEMPTS = 3;
+const SSE_SHARES_BACKOFF_MS = [1000, 3000];
 
 function plainText(html: string): string {
   return html.replace(/&nbsp;/gi, " ").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -232,31 +236,89 @@ export function parseSseDailyShares(payload: unknown, expectedCode = CN_ETF.code
   return out.sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function fetchSseShares(params: Record<string, string>): Promise<DailySharesPoint[]> {
-  const query = new URLSearchParams(params);
-  const payload = await httpGetJson<unknown>(`${SSE_QUERY_URL}?${query}`, {
-    timeoutMs: 20000,
-    retries: 1,
-    headers: { referer: "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880" },
-  });
-  return parseSseDailyShares(payload);
+type SseJsonFetcher = (url: string, opts?: HttpOptions) => Promise<unknown>;
+
+export interface SseSharesFetchDependencies {
+  getJson?: SseJsonFetcher;
+  wait?: (ms: number) => Promise<void>;
+  warn?: (message: string) => void;
 }
 
-export function fetchCnEtfDailySharesLatest(): Promise<DailySharesPoint[]> {
+function networkErrorCode(error: unknown): string | null {
+  const code = (error as { cause?: { code?: unknown }; code?: unknown })?.cause?.code
+    ?? (error as { code?: unknown })?.code;
+  return typeof code === "string" && /^[A-Z0-9_]+$/.test(code) ? code : null;
+}
+
+function isRetryableSseSharesError(error: unknown): boolean {
+  if (error instanceof HttpError) return error.status === 0 || error.status === 429 || error.status >= 500;
+  const code = networkErrorCode(error);
+  if (code && ["ECONNRESET", "ECONNREFUSED", "EAI_AGAIN", "ENETUNREACH", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE"].includes(code)) return true;
+  return error instanceof TypeError && error.message === "fetch failed";
+}
+
+function describeSseSharesError(error: unknown): string {
+  if (error instanceof HttpError) {
+    return error.status > 0 ? `HttpError HTTP ${error.status}` : `HttpError ${error.message}`;
+  }
+  if (error instanceof Error) {
+    const code = networkErrorCode(error);
+    return `${error.name} ${error.message}${code ? ` (${code})` : ""}`;
+  }
+  return `UnknownError ${String(error)}`;
+}
+
+export async function fetchSseShares(
+  params: Record<string, string>,
+  dependencies: SseSharesFetchDependencies = {},
+): Promise<DailySharesPoint[]> {
+  const query = new URLSearchParams(params);
+  const getJson = dependencies.getJson ?? httpGetJson;
+  const wait = dependencies.wait ?? sleep;
+  const warn = dependencies.warn ?? console.warn;
+  let payload: unknown;
+  for (let attempt = 1; attempt <= SSE_SHARES_ATTEMPTS; attempt++) {
+    try {
+      payload = await getJson(`${SSE_QUERY_URL}?${query}`, {
+        timeoutMs: 20000,
+        retries: 0,
+        headers: { referer: "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880" },
+      });
+      break;
+    } catch (error) {
+      const detail = describeSseSharesError(error);
+      const retryable = isRetryableSseSharesError(error);
+      warn(`[SSE][518880 shares] attempt ${attempt}/${SSE_SHARES_ATTEMPTS} failed: ${detail} at ${SSE_SHARES_ENDPOINT_LABEL}`);
+      if (!retryable || attempt === SSE_SHARES_ATTEMPTS) {
+        warn(`[SSE][518880 shares] failed after ${attempt} attempt${attempt === 1 ? "" : "s"}: ${detail} at ${SSE_SHARES_ENDPOINT_LABEL}`);
+        throw error;
+      }
+      await wait(SSE_SHARES_BACKOFF_MS[attempt - 1]);
+    }
+  }
+  try {
+    return parseSseDailyShares(payload);
+  } catch (error) {
+    warn(`[SSE][518880 shares] parser/schema error: ${describeSseSharesError(error)} at ${SSE_SHARES_ENDPOINT_LABEL}`);
+    throw error;
+  }
+}
+
+export function fetchCnEtfDailySharesLatest(dependencies: SseSharesFetchDependencies = {}): Promise<DailySharesPoint[]> {
   return fetchSseShares({
     sqlId: "COMMON_SSE_ZQPZ_ETFZL_ETFJBXX_JJGM_MOREN_L",
     SEC_CODE: CN_ETF.code,
     "pageHelp.pageSize": "400",
     "pageHelp.pageNo": "1",
-  });
+  }, dependencies);
 }
 
-export function fetchCnEtfDailySharesOn(date: string): Promise<DailySharesPoint[]> {
+export function fetchCnEtfDailySharesOn(date: string, dependencies: SseSharesFetchDependencies = {}): Promise<DailySharesPoint[]> {
   return fetchSseShares({
     sqlId: "COMMON_SSE_ZQPZ_ETFZL_ETFJBXX_JJGM_SEARCH_L",
     SEC_CODE: CN_ETF.code,
     STAT_DATE: date,
     "pageHelp.pageSize": "20",
     "pageHelp.pageNo": "1",
-  });
+  }, dependencies);
 }

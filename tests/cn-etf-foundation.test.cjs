@@ -5,8 +5,10 @@ const {
   parseHuaanPcfNav,
   parseSseDailyShares,
   fetchCnEtfOfficialNav,
+  fetchCnEtfDailySharesLatest,
   preserveProductNavFirstObserved,
 } = require("../.tmp-pipeline/lib/data-sources/cnEtf.js");
+const { HttpError } = require("../.tmp-pipeline/lib/data-sources/http.js");
 const { buildEtfFoundationRows } = require("../.tmp-pipeline/lib/cn-etf-foundation.js");
 const { mergeObservations } = require("../.tmp-pipeline/lib/series-merge.js");
 
@@ -52,6 +54,120 @@ test("上交所份额校验代码并把万份换算成亿份", () => {
 test("重复份额日期被拒绝", () => {
   const row = { STAT_DATE: "2026-08-21", SEC_CODE: "518880", TOT_VOL: 1 };
   assert.throws(() => parseSseDailyShares({ result: [row, row] }), /重复/);
+});
+
+const validSseSharesPayload = {
+  result: [{ STAT_DATE: "2026-08-21", SEC_CODE: "518880", TOT_VOL: "1027234.08" }],
+};
+
+function noWaitDependencies(getJson, warnings = []) {
+  return { getJson, wait: async () => {}, warn: (message) => warnings.push(message) };
+}
+
+test("日度份额第一次请求成功且不重试", async () => {
+  let calls = 0;
+  const points = await fetchCnEtfDailySharesLatest(noWaitDependencies(async () => {
+    calls += 1;
+    return validSseSharesPayload;
+  }));
+  assert.equal(calls, 1);
+  assert.equal(points[0].securityCode, "518880");
+});
+
+test("日度份额第一次网络失败后第二次成功", async () => {
+  let calls = 0;
+  const waits = [];
+  const warnings = [];
+  const points = await fetchCnEtfDailySharesLatest({
+    getJson: async () => {
+      calls += 1;
+      if (calls === 1) {
+        const error = new TypeError("fetch failed");
+        error.cause = { code: "ECONNRESET" };
+        throw error;
+      }
+      return validSseSharesPayload;
+    },
+    wait: async (ms) => waits.push(ms),
+    warn: (message) => warnings.push(message),
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [1000]);
+  assert.equal(points.length, 1);
+  assert.match(warnings[0], /attempt 1\/3.*ECONNRESET.*query\.sse\.com\.cn\/commonQuery\.do/);
+  assert.doesNotMatch(warnings[0], /sqlId|SEC_CODE/);
+});
+
+test("日度份额在 timeout、HTTP 429 和 5xx 后重试", async () => {
+  for (const status of [0, 429, 503]) {
+    let calls = 0;
+    const points = await fetchCnEtfDailySharesLatest(noWaitDependencies(async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new HttpError(status === 0 ? "timeout after 20000ms" : `HTTP ${status}`, status, "https://query.sse.com.cn/commonQuery.do?sensitive=hidden");
+      }
+      return validSseSharesPayload;
+    }));
+    assert.equal(calls, 2);
+    assert.equal(points.length, 1);
+  }
+});
+
+test("日度份额永久网络失败三次后仍然失败", async () => {
+  let calls = 0;
+  const waits = [];
+  const warnings = [];
+  await assert.rejects(
+    fetchCnEtfDailySharesLatest({
+      getJson: async () => {
+        calls += 1;
+        const error = new TypeError("fetch failed");
+        error.cause = { code: "ETIMEDOUT" };
+        throw error;
+      },
+      wait: async (ms) => waits.push(ms),
+      warn: (message) => warnings.push(message),
+    }),
+    /fetch failed/,
+  );
+  assert.equal(calls, 3);
+  assert.deepEqual(waits, [1000, 3000]);
+  assert.match(warnings.at(-1), /failed after 3 attempts.*ETIMEDOUT/);
+});
+
+test("日度份额 parser/schema 错误不重试", async () => {
+  let calls = 0;
+  const warnings = [];
+  await assert.rejects(
+    fetchCnEtfDailySharesLatest(noWaitDependencies(async () => {
+      calls += 1;
+      return { unexpected: [] };
+    }, warnings)),
+    /缺少 result/,
+  );
+  assert.equal(calls, 1);
+  assert.match(warnings.at(-1), /parser\/schema error/);
+});
+
+test("日度份额失败时旧 snapshot observations 保持不变", async () => {
+  const old = [{ series: "cn_gold_etf_shares_daily", observation_date: "2026-08-20", value: 100, fetched_at: "old" }];
+  let calls = 0;
+  await assert.rejects(fetchCnEtfDailySharesLatest(noWaitDependencies(async () => {
+    calls += 1;
+    throw new HttpError("HTTP 404", 404, "https://query.sse.com.cn/commonQuery.do");
+  })));
+  assert.equal(calls, 1);
+  assert.deepEqual(mergeObservations(old, []), old);
+});
+
+test("日度份额空 runner 永久失败时不生成空或伪造数据", async () => {
+  let generated;
+  await assert.rejects(async () => {
+    generated = await fetchCnEtfDailySharesLatest(noWaitDependencies(async () => {
+      throw new HttpError("HTTP 503", 503, "https://query.sse.com.cn/commonQuery.do");
+    }));
+  });
+  assert.equal(generated, undefined);
 });
 
 test("同日价格与 NAV 才计算正式折溢价", () => {
