@@ -201,6 +201,7 @@ jobs:
             const staged = await getDeployment(stagedHost);
             const currentProduction = await getDeployment(productionHost);
             const stagedAliases = Array.isArray(staged.alias) ? staged.alias : [];
+            const stagedAutomaticAliases = Array.isArray(staged.automaticAliases) ? staged.automaticAliases : [];
 
             if (staged.target !== "production" || staged.projectId !== process.env.VERCEL_PROJECT_ID) {
               throw new Error("The staged deployment is not classified as Production for the configured project");
@@ -208,7 +209,7 @@ jobs:
             if (!staged.id || staged.id === process.env.PREVIOUS_PRODUCTION_ID) {
               throw new Error("The staged deployment is not a distinct new Production deployment");
             }
-            if (staged.aliasAssigned === true || stagedAliases.includes(productionHost)) {
+            if (stagedAliases.includes(productionHost) || stagedAutomaticAliases.includes(productionHost)) {
               throw new Error("The staged deployment has received the formal Production domain");
             }
             if (currentProduction.id !== process.env.PREVIOUS_PRODUCTION_ID) {
