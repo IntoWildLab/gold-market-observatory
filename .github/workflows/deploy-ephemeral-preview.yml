@@ -215,7 +215,6 @@ jobs:
             response_file="$(mktemp)"
             npx --yes vercel@59.1.4 curl "$route" \
               --deployment "$PREVIEW_URL" \
-              --token="$VERCEL_TOKEN" \
               --silent --show-error --fail --location \
               --output "$response_file"
             if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
