@@ -1,0 +1,396 @@
+name: Controlled Production Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      staged_url:
+        description: Staged Production deployment URL to promote
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: controlled-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote-production:
+    name: Validate, promote, verify, and roll back if required
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Verify required repository secrets
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          missing=0
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required repository secret ${name} is not configured."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Validate staged and record current Production
+        id: preflight
+        env:
+          INPUT_STAGED_URL: ${{ inputs.staged_url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFile } from "node:fs/promises";
+
+          const productionHost = "gold-market-observatory.vercel.app";
+
+          function validatedDeploymentUrl(value) {
+            let url;
+            try {
+              url = new URL(value);
+            } catch {
+              throw new Error("staged_url is not a valid URL");
+            }
+            if (
+              url.protocol !== "https:"
+              || url.username
+              || url.password
+              || url.port
+              || url.pathname !== "/"
+              || url.search
+              || url.hash
+              || !url.hostname.endsWith(".vercel.app")
+            ) {
+              throw new Error("staged_url must be a root HTTPS vercel.app deployment URL");
+            }
+            if (url.hostname === productionHost) throw new Error("staged_url must not be the formal Production domain");
+            return { host: url.hostname, url: `https://${url.hostname}` };
+          }
+
+          async function getDeployment(host) {
+            const endpoint = new URL(`https://api.vercel.com/v13/deployments/${host}`);
+            if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
+            const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
+            if (!response.ok) throw new Error(`Unable to inspect deployment metadata for ${host}`);
+            return response.json();
+          }
+
+          try {
+            const input = validatedDeploymentUrl(process.env.INPUT_STAGED_URL);
+            const staged = await getDeployment(input.host);
+            const previous = await getDeployment(productionHost);
+            const stagedAliases = Array.isArray(staged.alias) ? staged.alias : [];
+            const stagedAutomaticAliases = Array.isArray(staged.automaticAliases) ? staged.automaticAliases : [];
+
+            if (staged.projectId !== process.env.VERCEL_PROJECT_ID || staged.target !== "production") {
+              throw new Error("The staged deployment is not a Production deployment for the configured project");
+            }
+            if (staged.readyState !== "READY" || !staged.id) throw new Error("The staged deployment is not ready");
+            if (stagedAliases.includes(productionHost) || stagedAutomaticAliases.includes(productionHost)) {
+              throw new Error("The staged deployment already owns the formal Production domain");
+            }
+            if (
+              previous.projectId !== process.env.VERCEL_PROJECT_ID
+              || previous.target !== "production"
+              || previous.readyState !== "READY"
+              || !previous.id
+              || !previous.url
+            ) {
+              throw new Error("The current formal Production deployment cannot be recorded safely");
+            }
+            if (staged.id === previous.id) throw new Error("The staged deployment is already the current Production deployment");
+
+            const previousUrl = previous.url.startsWith("https://") ? previous.url : `https://${previous.url}`;
+            await appendFile(process.env.GITHUB_OUTPUT, [
+              `staged_id=${staged.id}`,
+              `staged_url=${input.url}`,
+              `previous_id=${previous.id}`,
+              `previous_url=${previousUrl}`,
+              "status=valid",
+              "previous_status=recorded",
+              "",
+            ].join("\n"), "utf8");
+            console.log("Staged deployment validated and current Production deployment recorded.");
+          } catch (error) {
+            console.error(`::error::${error instanceof Error ? error.message : String(error)}`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Promote validated staged Production
+        id: promotion
+        continue-on-error: true
+        env:
+          STAGED_URL: ${{ steps.preflight.outputs.staged_url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@59.1.4 promote "$STAGED_URL" --yes --timeout=3m --token="$VERCEL_TOKEN"
+          echo "status=success" >> "$GITHUB_OUTPUT"
+
+      - name: Verify formal domain switched to staged deployment
+        id: switch
+        if: steps.promotion.outcome == 'success'
+        continue-on-error: true
+        env:
+          STAGED_ID: ${{ steps.preflight.outputs.staged_id }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFile } from "node:fs/promises";
+
+          const productionHost = "gold-market-observatory.vercel.app";
+          async function getCurrentProduction() {
+            const endpoint = new URL(`https://api.vercel.com/v13/deployments/${productionHost}`);
+            if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
+            const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
+            if (!response.ok) throw new Error("Unable to resolve the formal Production domain after promotion");
+            return response.json();
+          }
+
+          try {
+            let current;
+            for (let attempt = 1; attempt <= 6; attempt++) {
+              current = await getCurrentProduction();
+              if (current.id === process.env.STAGED_ID) break;
+              if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 5000));
+            }
+            if (
+              current?.id !== process.env.STAGED_ID
+              || current.projectId !== process.env.VERCEL_PROJECT_ID
+              || current.target !== "production"
+            ) {
+              throw new Error("The formal Production domain does not resolve to the staged deployment");
+            }
+            await appendFile(process.env.GITHUB_OUTPUT, `status=switched\nfinal_id=${current.id}\n`, "utf8");
+            console.log("Formal Production domain now resolves to the staged deployment.");
+          } catch (error) {
+            console.error(`::error::${error instanceof Error ? error.message : String(error)}`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Smoke test formal Production routes
+        id: smoke
+        if: steps.switch.outcome == 'success'
+        continue-on-error: true
+        env:
+          PRODUCTION_URL: https://gold-market-observatory.vercel.app
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          smoke_route() {
+            route="$1"
+            response_file="$(mktemp)"
+            if ! npx --yes vercel@59.1.4 curl "$route" \
+              --deployment "$PRODUCTION_URL" \
+              --silent --show-error --fail --location \
+              --output "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
+            if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
+            rm -f "$response_file"
+          }
+
+          if ! smoke_route /; then
+            echo "::error::Formal Production smoke test failed: /"
+            exit 1
+          fi
+          echo "root_status=success" >> "$GITHUB_OUTPUT"
+          echo "Production smoke test passed: /"
+
+          if ! smoke_route /design/refined-v4; then
+            echo "::error::Formal Production smoke test failed: /design/refined-v4"
+            exit 1
+          fi
+          echo "refined_status=success" >> "$GITHUB_OUTPUT"
+          echo "Production smoke test passed: /design/refined-v4"
+
+      - name: Determine whether rollback is required
+        id: rollback-required
+        if: always() && steps.preflight.outcome == 'success'
+        env:
+          PROMOTION_OUTCOME: ${{ steps.promotion.outcome }}
+          SWITCH_OUTCOME: ${{ steps.switch.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        run: |
+          required=false
+          if [ "$PROMOTION_OUTCOME" != "success" ] || [ "$SWITCH_OUTCOME" != "success" ] || [ "$SMOKE_OUTCOME" != "success" ]; then
+            required=true
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+          echo "Rollback required: $required"
+
+      - name: Restore previous Production after failed promotion validation
+        id: rollback
+        if: always() && steps.rollback-required.outputs.required == 'true'
+        continue-on-error: true
+        env:
+          PREVIOUS_PRODUCTION_ID: ${{ steps.preflight.outputs.previous_id }}
+          PREVIOUS_PRODUCTION_URL: ${{ steps.preflight.outputs.previous_url }}
+          PRODUCTION_URL: https://gold-market-observatory.vercel.app
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          critical=false
+
+          if ! npx --yes vercel@59.1.4 promote "$PREVIOUS_PRODUCTION_URL" --yes --timeout=3m --token="$VERCEL_TOKEN"; then
+            critical=true
+          fi
+
+          if [ "$critical" = "false" ]; then
+            if ! node --input-type=module <<'NODE'
+          const productionHost = "gold-market-observatory.vercel.app";
+          async function getCurrentProduction() {
+            const endpoint = new URL(`https://api.vercel.com/v13/deployments/${productionHost}`);
+            if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
+            const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
+            if (!response.ok) throw new Error("Unable to resolve the formal Production domain after rollback");
+            return response.json();
+          }
+
+          let current;
+          for (let attempt = 1; attempt <= 6; attempt++) {
+            current = await getCurrentProduction();
+            if (current.id === process.env.PREVIOUS_PRODUCTION_ID) break;
+            if (attempt < 6) await new Promise((resolve) => setTimeout(resolve, 5000));
+          }
+          if (
+            current?.id !== process.env.PREVIOUS_PRODUCTION_ID
+            || current.projectId !== process.env.VERCEL_PROJECT_ID
+            || current.target !== "production"
+          ) {
+            throw new Error("The formal Production domain was not restored to the previous deployment");
+          }
+          console.log("Previous Production deployment restored and verified.");
+          NODE
+            then
+              critical=true
+            fi
+          fi
+
+          smoke_route() {
+            route="$1"
+            response_file="$(mktemp)"
+            if ! npx --yes vercel@59.1.4 curl "$route" \
+              --deployment "$PRODUCTION_URL" \
+              --silent --show-error --fail --location \
+              --output "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
+            if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
+            rm -f "$response_file"
+          }
+
+          if [ "$critical" = "false" ]; then
+            if ! smoke_route / || ! smoke_route /design/refined-v4; then
+              critical=true
+            fi
+          fi
+
+          if [ "$critical" = "true" ]; then
+            echo "::error::CRITICAL ROLLBACK FAILURE"
+            echo "Previous Production ID: $PREVIOUS_PRODUCTION_ID"
+            echo "Previous Production URL: $PREVIOUS_PRODUCTION_URL"
+            echo "status=critical-failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "Rollback verification and Production smoke tests passed."
+
+      - name: Write controlled promotion summary
+        if: always()
+        env:
+          STAGED_VALIDATION: ${{ steps.preflight.outputs.status }}
+          PREVIOUS_RECORDED: ${{ steps.preflight.outputs.previous_status }}
+          PROMOTION_OUTCOME: ${{ steps.promotion.outcome }}
+          SWITCH_STATUS: ${{ steps.switch.outputs.status }}
+          ROOT_SMOKE: ${{ steps.smoke.outputs.root_status }}
+          REFINED_SMOKE: ${{ steps.smoke.outputs.refined_status }}
+          ROLLBACK_REQUIRED: ${{ steps.rollback-required.outputs.required }}
+          ROLLBACK_STATUS: ${{ steps.rollback.outputs.status }}
+          STAGED_ID: ${{ steps.preflight.outputs.staged_id }}
+          STAGED_URL: ${{ steps.preflight.outputs.staged_url }}
+          PREVIOUS_ID: ${{ steps.preflight.outputs.previous_id }}
+          PREVIOUS_URL: ${{ steps.preflight.outputs.previous_url }}
+        run: |
+          final_id="Not available"
+          final_url="Not available"
+          if [ "${ROLLBACK_REQUIRED:-false}" = "true" ] && [ "$ROLLBACK_STATUS" = "success" ]; then
+            final_id="${PREVIOUS_ID:-Not available}"
+            final_url="${PREVIOUS_URL:-Not available}"
+          elif [ "$PROMOTION_OUTCOME" = "success" ] && [ "$SWITCH_STATUS" = "switched" ] && [ "$ROOT_SMOKE" = "success" ] && [ "$REFINED_SMOKE" = "success" ]; then
+            final_id="${STAGED_ID:-Not available}"
+            final_url="${STAGED_URL:-Not available}"
+          fi
+
+          {
+            echo "# Controlled Production Promotion"
+            echo
+            echo "- Staged validation: **${STAGED_VALIDATION:-Not run}**"
+            echo "- Previous Production recorded: **${PREVIOUS_RECORDED:-Not run}**"
+            echo "- Promotion: **${PROMOTION_OUTCOME:-Not run}**"
+            echo "- Formal domain switched: **${SWITCH_STATUS:-Not run}**"
+            echo "- Production smoke /: **${ROOT_SMOKE:-Not run}**"
+            echo "- Production smoke /design/refined-v4: **${REFINED_SMOKE:-Not run}**"
+            echo "- Rollback required: **${ROLLBACK_REQUIRED:-No}**"
+            echo "- Rollback status: **${ROLLBACK_STATUS:-Not required}**"
+            echo "- Final Production deployment ID: ${final_id}"
+            echo "- Final Production URL: ${final_url}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce controlled promotion result
+        if: always()
+        env:
+          PREFLIGHT_OUTCOME: ${{ steps.preflight.outcome }}
+          PROMOTION_OUTCOME: ${{ steps.promotion.outcome }}
+          SWITCH_OUTCOME: ${{ steps.switch.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          ROLLBACK_REQUIRED: ${{ steps.rollback-required.outputs.required }}
+          ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+        run: |
+          if [ "$PREFLIGHT_OUTCOME" != "success" ]; then
+            echo "::error::Staged validation failed; no promotion was performed."
+            exit 1
+          fi
+          if [ "$ROLLBACK_REQUIRED" = "true" ]; then
+            if [ "$ROLLBACK_OUTCOME" != "success" ]; then
+              echo "::error::CRITICAL ROLLBACK FAILURE"
+            else
+              echo "::error::Production promotion failed validation and was rolled back."
+            fi
+            exit 1
+          fi
+          if [ "$PROMOTION_OUTCOME" != "success" ] || [ "$SWITCH_OUTCOME" != "success" ] || [ "$SMOKE_OUTCOME" != "success" ]; then
+            echo "::error::Production promotion did not satisfy all success conditions."
+            exit 1
+          fi
+          echo "Production Promotion: SUCCESS"
