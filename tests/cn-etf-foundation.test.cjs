@@ -6,6 +6,7 @@ const {
   parseSseDailyShares,
   fetchCnEtfOfficialNav,
   fetchCnEtfDailySharesLatest,
+  fetchCnEtfDailySharesOn,
   preserveProductNavFirstObserved,
 } = require("../.tmp-pipeline/lib/data-sources/cnEtf.js");
 const { HttpError } = require("../.tmp-pipeline/lib/data-sources/http.js");
@@ -111,6 +112,77 @@ test("日度份额在 timeout、HTTP 429 和 5xx 后重试", async () => {
     assert.equal(calls, 2);
     assert.equal(points.length, 1);
   }
+});
+
+test("日度份额 latest 查询第一次 HTTP 403 后重试成功", async () => {
+  let calls = 0;
+  const waits = [];
+  const points = await fetchCnEtfDailySharesLatest({
+    getJson: async () => {
+      calls += 1;
+      if (calls === 1) throw new HttpError("HTTP 403", 403, "https://query.sse.com.cn/commonQuery.do");
+      return validSseSharesPayload;
+    },
+    wait: async (ms) => waits.push(ms),
+    warn: () => {},
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(waits, [1000]);
+  assert.equal(points.length, 1);
+});
+
+test("日度份额 latest 查询连续 HTTP 403 三次后仍然失败", async () => {
+  let calls = 0;
+  const waits = [];
+  await assert.rejects(
+    fetchCnEtfDailySharesLatest({
+      getJson: async () => {
+        calls += 1;
+        throw new HttpError("HTTP 403", 403, "https://query.sse.com.cn/commonQuery.do");
+      },
+      wait: async (ms) => waits.push(ms),
+      warn: () => {},
+    }),
+    /HTTP 403/,
+  );
+  assert.equal(calls, 3);
+  assert.deepEqual(waits, [1000, 3000]);
+});
+
+test("日度份额 historical dated 查询 HTTP 403 不重试", async () => {
+  let calls = 0;
+  const waits = [];
+  await assert.rejects(
+    fetchCnEtfDailySharesOn("2026-08-21", {
+      getJson: async () => {
+        calls += 1;
+        throw new HttpError("HTTP 403", 403, "https://query.sse.com.cn/commonQuery.do");
+      },
+      wait: async (ms) => waits.push(ms),
+      warn: () => {},
+    }),
+    /HTTP 403/,
+  );
+  assert.equal(calls, 1);
+  assert.deepEqual(waits, []);
+});
+
+test("日度份额 latest 查询 HTTP 404 不重试", async () => {
+  let calls = 0;
+  const waits = [];
+  await assert.rejects(
+    fetchCnEtfDailySharesLatest({
+      getJson: async () => {
+        calls += 1;
+        throw new HttpError("HTTP 404", 404, "https://query.sse.com.cn/commonQuery.do");
+      },
+      wait: async (ms) => waits.push(ms),
+      warn: () => {},
+    }),
+    /HTTP 404/,
+  );
+  assert.equal(calls, 1);
+  assert.deepEqual(waits, []);
 });
 
 test("日度份额永久网络失败三次后仍然失败", async () => {

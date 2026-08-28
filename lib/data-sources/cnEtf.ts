@@ -244,14 +244,23 @@ export interface SseSharesFetchDependencies {
   warn?: (message: string) => void;
 }
 
+export interface SseSharesRetryPolicy {
+  retryHttp403?: boolean;
+}
+
 function networkErrorCode(error: unknown): string | null {
   const code = (error as { cause?: { code?: unknown }; code?: unknown })?.cause?.code
     ?? (error as { code?: unknown })?.code;
   return typeof code === "string" && /^[A-Z0-9_]+$/.test(code) ? code : null;
 }
 
-function isRetryableSseSharesError(error: unknown): boolean {
-  if (error instanceof HttpError) return error.status === 0 || error.status === 429 || error.status >= 500;
+function isRetryableSseSharesError(error: unknown, policy: SseSharesRetryPolicy): boolean {
+  if (error instanceof HttpError) {
+    return error.status === 0
+      || error.status === 429
+      || error.status >= 500
+      || (policy.retryHttp403 === true && error.status === 403);
+  }
   const code = networkErrorCode(error);
   if (code && ["ECONNRESET", "ECONNREFUSED", "EAI_AGAIN", "ENETUNREACH", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE"].includes(code)) return true;
   return error instanceof TypeError && error.message === "fetch failed";
@@ -271,6 +280,7 @@ function describeSseSharesError(error: unknown): string {
 export async function fetchSseShares(
   params: Record<string, string>,
   dependencies: SseSharesFetchDependencies = {},
+  retryPolicy: SseSharesRetryPolicy = {},
 ): Promise<DailySharesPoint[]> {
   const query = new URLSearchParams(params);
   const getJson = dependencies.getJson ?? httpGetJson;
@@ -287,7 +297,7 @@ export async function fetchSseShares(
       break;
     } catch (error) {
       const detail = describeSseSharesError(error);
-      const retryable = isRetryableSseSharesError(error);
+      const retryable = isRetryableSseSharesError(error, retryPolicy);
       warn(`[SSE][518880 shares] attempt ${attempt}/${SSE_SHARES_ATTEMPTS} failed: ${detail} at ${SSE_SHARES_ENDPOINT_LABEL}`);
       if (!retryable || attempt === SSE_SHARES_ATTEMPTS) {
         warn(`[SSE][518880 shares] failed after ${attempt} attempt${attempt === 1 ? "" : "s"}: ${detail} at ${SSE_SHARES_ENDPOINT_LABEL}`);
@@ -310,7 +320,7 @@ export function fetchCnEtfDailySharesLatest(dependencies: SseSharesFetchDependen
     SEC_CODE: CN_ETF.code,
     "pageHelp.pageSize": "400",
     "pageHelp.pageNo": "1",
-  }, dependencies);
+  }, dependencies, { retryHttp403: true });
 }
 
 export function fetchCnEtfDailySharesOn(date: string, dependencies: SseSharesFetchDependencies = {}): Promise<DailySharesPoint[]> {
