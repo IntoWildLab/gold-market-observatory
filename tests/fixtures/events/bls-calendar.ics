@@ -1,0 +1,35 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260113T083000
+DTEND;TZID=America/New_York:20260113T084500
+SUMMARY:Consumer Price Index for December 2025
+DESCRIPTION:Official BLS
+  release calendar
+URL:https://www.bls.gov/schedule/news_release/cpi.htm
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260306T083000
+SUMMARY:Employment Situation for February 2026
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260318T083000
+SUMMARY:Producer Price Index for February 2026
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260113T083000
+SUMMARY:Real Earnings for December 2025
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260114T083000
+SUMMARY:Correction to Consumer Price Index for December 2025
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260319T083000
+SUMMARY:Revision to Producer Price Index for February 2026
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;TZID=America/New_York:20260113T083000
+SUMMARY:Consumer Price Index for December 2025
+END:VEVENT
+END:VCALENDAR
