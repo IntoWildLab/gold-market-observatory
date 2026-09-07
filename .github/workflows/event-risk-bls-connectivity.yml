@@ -1,0 +1,124 @@
+name: Event Risk BLS Connectivity Diagnostic
+
+on:
+  push:
+    branches:
+      - test/event-risk-bls-connectivity
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    name: Validate BLS connectivity and Event Risk E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run BLS connectivity diagnostic
+        id: bls
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const { fetchBlsEvents } = require("./.tmp-pipeline/lib/data-sources/bls-events-fetch.js");
+
+          (async () => {
+            const result = await fetchBlsEvents(new Date(), { maxAttempts: 1 });
+            const releaseCoverage = result.release_coverage;
+            const releaseDetails = new Map(
+              result.issues
+                .filter((issue) => issue.code === "source_unavailable")
+                .map((issue) => {
+                  const separator = issue.detail.indexOf(":");
+                  return separator < 0
+                    ? [issue.detail, "failed"]
+                    : [issue.detail.slice(0, separator), issue.detail.slice(separator + 1).trim()];
+                }),
+            );
+            const completeReleaseCoverage = result.transport !== "release_schedule_fallback"
+              || (releaseCoverage && releaseCoverage.failed.length === 0);
+            const passed = result.issues.length === 0 && completeReleaseCoverage;
+            const lineForRelease = (category) => {
+              if (result.transport !== "release_schedule_fallback") return "not requested";
+              return releaseCoverage.successful.includes(category) ? "ok" : releaseDetails.get(category) ?? "failed";
+            };
+            const lines = [
+              "## BLS Connectivity",
+              "",
+              `- Runner OS: **${process.env.RUNNER_OS ?? process.platform}**`,
+              `- ICS: **${result.transport === "ics" ? "ok" : result.primary_error_code ?? "failed"}**`,
+              `- Monthly HTML: **${result.transport === "ics" ? "not requested" : result.transport === "html_fallback" ? "ok" : result.monthly_error_code ?? "failed"}**`,
+              `- CPI release schedule: **${lineForRelease("us_cpi")}**`,
+              `- Employment Situation release schedule: **${lineForRelease("us_employment_situation")}**`,
+              `- PPI release schedule: **${lineForRelease("us_ppi")}**`,
+              `- Selected transport: **${result.transport}**`,
+              `- BLS coverage: **${releaseCoverage ? `${releaseCoverage.successful.length}/3` : "complete"}**`,
+              `- Gate result: **${passed ? "PASS" : "FAIL"}**`,
+              "",
+            ];
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `gate=${passed ? "pass" : "fail"}\n`);
+            if (!passed) {
+              console.error("BLS host-level restriction also reproduced on GitHub-hosted runner");
+              process.exitCode = 1;
+            }
+          })().catch((error) => {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "## BLS Connectivity\n\n- Gate result: **FAIL**\n- Diagnostic failed before reliable source coverage was established.\n");
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, "gate=fail\n");
+            console.error(error instanceof Error ? error.message : String(error));
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Run final Event Risk E2E
+        id: e2e
+        if: steps.bls.outputs.gate == 'pass'
+        run: npm run data:fetch:events
+
+      - name: Write Event Risk E2E summary
+        if: always() && steps.bls.outputs.gate == 'pass'
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const file = "data/events/event-risk.json";
+          if (!fs.existsSync(file)) {
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, "## Event Risk E2E\n\n- Snapshot: **not written**\n");
+            process.exit(0);
+          }
+          const snapshot = JSON.parse(fs.readFileSync(file, "utf8"));
+          const lines = [
+            "## Event Risk E2E",
+            "",
+            `- schema_version: **${snapshot.schema_version}**`,
+            `- generated_at: **${snapshot.generated_at}**`,
+            `- horizon_hours: **${snapshot.horizon_hours}**`,
+            `- availability: **${snapshot.availability}**`,
+            "- Sources:",
+            ...snapshot.sources.map((source) => `  - ${source.name}: **${source.status}**${source.error_code ? ` (${source.error_code})` : ""}`),
+            `- Event count: **${snapshot.events.length}**`,
+            "- Events:",
+            ...(snapshot.events.length
+              ? snapshot.events.map((event) => `  - ${event.title} | ${event.category} | ${event.scheduled_at} | ${event.impact} | ${event.direction} | ${event.source_name}`)
+              : ["  - None within the 72-hour horizon"]),
+            "",
+          ];
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
+          NODE
