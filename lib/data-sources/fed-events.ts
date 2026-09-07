@@ -12,7 +12,8 @@ export interface ParseFedCalendarOptions {
 export function parseFedCalendarHtml(html: string, options: ParseFedCalendarOptions = {}): EventParserResult {
   const sourceUrl = options.sourceUrl ?? FED_EVENT_SOURCE_URL;
   const pageText = toText(html);
-  const context = /calendar(?::)?\s+([a-z]+)\s+(20\d{2})/i.exec(pageText);
+  const context = /<h[1-6]\b[^>]*>\s*([a-z]+)\s+(20\d{2})\s*<\/h[1-6]>/i.exec(html)
+    ?? /calendar(?::)?[\s\S]{0,300}?\b([a-z]+)\s+(20\d{2})\b/i.exec(pageText);
   if (!/<(?:html|div|tr)\b/i.test(html) || !context) {
     throw new EventParserStructureError("Federal Reserve", "response is not a recognizable monthly calendar");
   }
@@ -23,22 +24,16 @@ export function parseFedCalendarHtml(html: string, options: ParseFedCalendarOpti
   if (!blocks.length) throw new EventParserStructureError("Federal Reserve", "no recognizable event containers");
   const issues: EventParserIssue[] = [];
   const events = [];
-  const parsedBlocks = blocks.map((block) => ({
-    block,
-    officialTitle: extractClassText(block, ["eventlist__event__title", "event-title"]),
-  }));
+  const parsedBlocks = blocks.map((block) => ({ block, ...extractOfficialEventFields(block) }));
   if (!parsedBlocks.some((item) => item.officialTitle)) {
     throw new EventParserStructureError("Federal Reserve", "event containers have no recognizable title fields");
   }
 
-  for (const { block, officialTitle } of parsedBlocks) {
+  for (const { block, officialTitle, officialSpeaker } of parsedBlocks) {
     const text = toText(block);
-    if (!officialTitle) {
-      issues.push({ code: "malformed_event", detail: "event container has no recognizable title field" });
-      continue;
-    }
+    if (!officialTitle) continue;
     const classified = classifyFomcEvent(officialTitle)
-      ?? classifyVerifiedChairEvent(officialTitle, extractOfficialSpeaker(block, officialTitle), options.chairIdentity, issues);
+      ?? classifyVerifiedChairEvent(officialTitle, officialSpeaker, options.chairIdentity, issues);
     if (!classified) continue;
     const day = parseDay(block, text);
     if (!day) {
@@ -116,6 +111,8 @@ function parseDay(html: string, text: string): number | null {
   if (attr) return +attr[1];
   const semantic = /class=["'][^"']*(?:eventlist__event__date|event-date)[^"']*["'][^>]*>\s*(\d{1,2})\s*</i.exec(html);
   if (semantic) return +semantic[1];
+  const officialColumns = [...html.matchAll(/class=["'][^"']*\bcol-xs-3\b[^"']*["'][^>]*>\s*<p\b[^>]*>\s*(\d{1,2})\s*<\/p>/gi)];
+  if (officialColumns.length) return +officialColumns[officialColumns.length - 1][1];
   const tail = /\b(\d{1,2})\s*$/.exec(text);
   return tail ? +tail[1] : null;
 }
@@ -136,9 +133,25 @@ function extractEventBlocks(html: string): string[] {
   const opening = /<(?:div|tr)\b[^>]*class=["']([^"']+)["'][^>]*>/gi;
   for (const match of html.matchAll(opening)) {
     const classes = match[1].split(/\s+/);
-    if (classes.includes("eventlist") || classes.includes("event-row")) starts.push(match.index);
+    if (classes.includes("eventlist") || classes.includes("event-row") || classes.includes("panel")) starts.push(match.index);
   }
   return starts.map((start, index) => html.slice(start, starts[index + 1] ?? html.length));
+}
+
+function extractOfficialEventFields(html: string): { officialTitle: string | null; officialSpeaker: string | null } {
+  const semanticTitle = extractClassText(html, ["eventlist__event__title", "event-title"]);
+  if (semanticTitle) {
+    return { officialTitle: semanticTitle, officialSpeaker: extractOfficialSpeaker(html, semanticTitle) };
+  }
+  const paragraphs = [...html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map((match) => toText(match[1])).filter(Boolean);
+  const exactFomc = paragraphs.find((value) => /^(?:FOMC Meeting|FOMC Press Conference|FOMC Minutes)$/i.test(value));
+  if (exactFomc) return { officialTitle: exactFomc, officialSpeaker: null };
+  const roleIndex = paragraphs.findIndex((value) => /^(?:Speech|Discussion|Testimony)\s+-\s+(?:Chair|Chairman|Chairwoman)\s+.+$/i.test(value));
+  if (roleIndex < 0) return { officialTitle: null, officialSpeaker: null };
+  const role = /^(Speech|Discussion|Testimony)\s+-\s+(.+)$/i.exec(paragraphs[roleIndex]);
+  if (!role) return { officialTitle: null, officialSpeaker: null };
+  const topic = paragraphs.slice(roleIndex + 1).find((value) => !/^Watch Live$/i.test(value) && !/^At\b/i.test(value) && !/^\d{1,2}$/.test(value));
+  return { officialTitle: topic ? `${role[1]} - ${topic}` : role[1], officialSpeaker: role[2] };
 }
 
 function extractClassText(html: string, classNames: readonly string[]): string | null {
@@ -164,5 +177,11 @@ function toText(html: string): string {
 function firstLink(html: string, fallback: string): string {
   const match = /<a\b[^>]*href=["']([^"']+)["']/i.exec(html);
   if (!match) return fallback;
-  try { return new URL(match[1], fallback).toString(); } catch { return fallback; }
+  try {
+    const candidate = new URL(match[1], fallback);
+    if (candidate.protocol === "https:" && (candidate.hostname === "federalreserve.gov" || candidate.hostname.endsWith(".federalreserve.gov"))) {
+      return candidate.toString();
+    }
+    return fallback;
+  } catch { return fallback; }
 }

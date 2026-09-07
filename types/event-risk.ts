@@ -43,11 +43,36 @@ export interface EventParserIssue {
     | "missing_date"
     | "missing_time"
     | "unsupported_datetime"
-    | "chair_identity_unavailable";
+    | "chair_identity_unavailable"
+    | "source_unavailable";
   detail: string;
 }
 
 export interface EventParserResult {
   events: EventRiskEvent[];
   issues: EventParserIssue[];
+}
+
+export type EventRiskAvailability = "available" | "partial" | "unavailable";
+
+export type EventRiskSnapshotSourceName =
+  | "Federal Reserve Calendar"
+  | "Federal Reserve Chair Identity"
+  | "U.S. Bureau of Labor Statistics Calendar"
+  | "U.S. Bureau of Economic Analysis Schedule";
+
+export interface EventRiskSourceStatus {
+  name: EventRiskSnapshotSourceName;
+  status: "ok" | "failed";
+  fetched_at: string;
+  error_code?: string;
+}
+
+export interface EventRiskSnapshot {
+  schema_version: 1;
+  generated_at: string;
+  horizon_hours: 72;
+  availability: EventRiskAvailability;
+  sources: EventRiskSourceStatus[];
+  events: EventRiskEvent[];
 }

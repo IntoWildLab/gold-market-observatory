@@ -48,7 +48,7 @@ export function parseBlsEventsIcs(ics: string, sourceUrl = BLS_EVENT_SOURCE_URL)
   return { events: sortAndDedupeEvents(events), issues };
 }
 
-function classifyBlsTitle(title: string): EventRiskCategory | null {
+export function classifyBlsTitle(title: string): EventRiskCategory | null {
   const releasePeriod = "(?:January|February|March|April|May|June|July|August|September|October|November|December) \\d{4}";
   if (new RegExp(`^Consumer Price Index for ${releasePeriod}$`, "i").test(title)) return "us_cpi";
   if (new RegExp(`^Employment Situation for ${releasePeriod}$`, "i").test(title)) return "us_employment_situation";
@@ -56,7 +56,7 @@ function classifyBlsTitle(title: string): EventRiskCategory | null {
   return null;
 }
 
-function canonicalBlsTitle(category: EventRiskCategory): string {
+export function canonicalBlsTitle(category: EventRiskCategory): string {
   if (category === "us_cpi") return "US Consumer Price Index (CPI)";
   if (category === "us_employment_situation") return "US Employment Situation";
   return "US Producer Price Index (PPI)";
