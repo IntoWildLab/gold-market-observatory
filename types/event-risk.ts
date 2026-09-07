@@ -66,6 +66,29 @@ export interface EventRiskSourceStatus {
   status: "ok" | "failed";
   fetched_at: string;
   error_code?: string;
+  mode?: "live" | "verified_cache";
+  verified_at?: string;
+}
+
+export type BlsVerifiedCacheCategory = "us_cpi" | "us_employment_situation" | "us_ppi";
+
+export interface BlsVerifiedCacheSource {
+  category: BlsVerifiedCacheCategory;
+  source_url: string;
+}
+
+export interface BlsVerifiedCacheEvent extends BlsVerifiedCacheSource {
+  reference_period: string;
+  scheduled_at: string;
+}
+
+export interface BlsVerifiedScheduleCache {
+  schema_version: 1;
+  source_name: "U.S. Bureau of Labor Statistics";
+  verified_at: string;
+  timezone: "America/New_York";
+  sources: BlsVerifiedCacheSource[];
+  events: BlsVerifiedCacheEvent[];
 }
 
 export interface EventRiskSnapshot {

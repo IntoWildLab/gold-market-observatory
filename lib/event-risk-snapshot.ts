@@ -3,6 +3,7 @@ import path from "node:path";
 import { buildEventRiskEvent, createEventRiskId, impactForCategory, normalizeUtcIso, sortAndDedupeEvents, visibleEventRiskEvents } from "./event-risk";
 import { fetchBeaEvents } from "./data-sources/bea-events-fetch";
 import { fetchBlsEvents, type EventFetchOptions } from "./data-sources/bls-events-fetch";
+import { eventsFromBlsVerifiedScheduleCache, isBlsVerifiedScheduleCacheFresh, readBlsVerifiedScheduleCache, validateBlsVerifiedScheduleCache } from "./data-sources/bls-verified-cache";
 import { EventSourceFetchError } from "./data-sources/event-http";
 import { fetchFedCalendarEvents, fetchFedChairIdentity } from "./data-sources/fed-events-fetch";
 import type {
@@ -12,6 +13,7 @@ import type {
   EventRiskSnapshotSourceName,
   EventRiskSourceStatus,
   FedChairIdentity,
+  BlsVerifiedScheduleCache,
 } from "../types/event-risk";
 
 export const EVENT_RISK_HORIZON_HOURS = 72 as const;
@@ -26,6 +28,8 @@ const SOURCE_ORDER: readonly EventRiskSnapshotSourceName[] = [
 
 export interface FetchEventRiskSnapshotOptions extends EventFetchOptions {
   now: Date;
+  blsVerifiedCache?: unknown;
+  blsVerifiedCachePath?: string;
 }
 
 export async function fetchEventRiskSnapshot(options: FetchEventRiskSnapshotOptions): Promise<EventRiskSnapshot> {
@@ -49,7 +53,7 @@ export async function fetchEventRiskSnapshot(options: FetchEventRiskSnapshotOpti
 
   const acquisitions = await Promise.all([
     acquire("Federal Reserve Calendar", generatedAt, () => fetchFedCalendarEvents(options.now, chairIdentity, fetchOptions), chairIdentity ? [] : ["chair_identity_unavailable"]),
-    acquire("U.S. Bureau of Labor Statistics Calendar", generatedAt, () => fetchBlsEvents(options.now, fetchOptions)),
+    acquireBls(generatedAt, options, fetchOptions),
     acquire("U.S. Bureau of Economic Analysis Schedule", generatedAt, () => fetchBeaEvents(yearInNewYork(options.now), fetchOptions)),
   ]);
   for (const acquisition of acquisitions) {
@@ -92,6 +96,18 @@ export function validateEventRiskSnapshot(snapshot: EventRiskSnapshot): void {
     normalizeUtcIso(source.fetched_at);
     if (source.status === "failed" && !source.error_code) throw new Error(`${source.name}: failed source requires error_code`);
     if (source.status === "ok" && source.error_code) throw new Error(`${source.name}: successful source cannot have error_code`);
+    if (source.name !== "U.S. Bureau of Labor Statistics Calendar" && (source.mode || source.verified_at)) {
+      throw new Error(`${source.name}: cache provenance is only valid for BLS`);
+    }
+    if (source.name === "U.S. Bureau of Labor Statistics Calendar" && source.mode !== "live" && source.mode !== "verified_cache") {
+      throw new Error(`${source.name}: source mode is invalid`);
+    }
+    if (source.mode === "verified_cache") {
+      if (source.status !== "failed" || !source.error_code || !source.verified_at) throw new Error(`${source.name}: verified cache provenance is incomplete`);
+      normalizeUtcIso(source.verified_at);
+    } else if (source.verified_at) {
+      throw new Error(`${source.name}: live source cannot have cache verified_at`);
+    }
   }
   const ids = new Set<string>();
   for (const event of snapshot.events) {
@@ -163,6 +179,47 @@ async function acquire(
   } catch (error) {
     return { status: failedStatus(name, fetchedAt, errorCode(error)), events: [] };
   }
+}
+
+async function acquireBls(
+  fetchedAt: string,
+  options: FetchEventRiskSnapshotOptions,
+  fetchOptions: EventFetchOptions,
+): Promise<{ status: EventRiskSourceStatus; events: EventRiskEvent[] }> {
+  let liveErrorCode: string;
+  try {
+    const result = await fetchBlsEvents(options.now, fetchOptions);
+    if (result.issues.length === 0) {
+      return { status: { ...okStatus("U.S. Bureau of Labor Statistics Calendar", fetchedAt), mode: "live" }, events: result.events };
+    }
+    liveErrorCode = `parse_${result.issues[0].code}`;
+  } catch (error) {
+    liveErrorCode = errorCode(error);
+  }
+
+  const cache = await eligibleBlsCache(options).catch(() => undefined);
+  if (cache) {
+    return {
+      status: {
+        ...failedStatus("U.S. Bureau of Labor Statistics Calendar", fetchedAt, liveErrorCode),
+        mode: "verified_cache",
+        verified_at: cache.verified_at,
+      },
+      events: eventsFromBlsVerifiedScheduleCache(cache),
+    };
+  }
+  return {
+    status: { ...failedStatus("U.S. Bureau of Labor Statistics Calendar", fetchedAt, liveErrorCode), mode: "live" },
+    events: [],
+  };
+}
+
+async function eligibleBlsCache(options: FetchEventRiskSnapshotOptions): Promise<BlsVerifiedScheduleCache | undefined> {
+  if (options.blsVerifiedCache === undefined && !options.blsVerifiedCachePath) return undefined;
+  const cache = options.blsVerifiedCache !== undefined
+    ? validateBlsVerifiedScheduleCache(options.blsVerifiedCache)
+    : await readBlsVerifiedScheduleCache(options.blsVerifiedCachePath as string);
+  return isBlsVerifiedScheduleCacheFresh(cache, options.now) ? cache : undefined;
 }
 
 function okStatus(name: EventRiskSnapshotSourceName, fetchedAt: string): EventRiskSourceStatus {
