@@ -3,6 +3,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "jsx": "react-jsx",
     "outDir": ".tmp-pipeline",
     "noEmit": false,
     "declaration": false,
@@ -11,6 +12,6 @@
     "paths": { "@/*": ["./*"] },
     "types": ["node"]
   },
-  "include": ["scripts/fetch-data.ts", "scripts/fetch-event-risk.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts"],
-  "exclude": ["node_modules", "app", "components"]
+  "include": ["scripts/fetch-data.ts", "scripts/fetch-event-risk.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts", "components/design/EventRiskStrip.tsx"],
+  "exclude": ["node_modules", "app"]
 }

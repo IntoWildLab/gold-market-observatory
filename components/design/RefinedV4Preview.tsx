@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { DesignData } from "@/lib/design-data";
 import { V4AreaChart, V4Donut, V4ShareStack, V4Compare, type VPoint } from "./charts/V4Chart";
+import EventRiskStrip from "./EventRiskStrip";
 
 /**
  * refined-v4 —— 浅暖白金融风(仅 /design/refined-v4 预览)
@@ -452,8 +453,9 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             {/* Mobile 用 contents 让两列子组件统一参与 order；Desktop 恢复 60/40 两列 */}
             <div className="contents lg:col-span-3 lg:flex lg:flex-col lg:gap-4">
               <div className="order-1 lg:order-1"><InternationalGoldSummary data={d} /></div>
-              <div className="order-5 lg:order-2"><CoreGoldTrendChart data={d} /></div>
-              <div className="order-6 lg:order-3">
+              <div className="order-2 lg:order-2"><EventRiskStrip eventRisk={d.eventRisk} /></div>
+              <div className="order-5 lg:order-3"><CoreGoldTrendChart data={d} /></div>
+              <div className="order-6 lg:order-4">
                 <MacroEnvironmentStrip dxy={macroDxy} real={macroReal} nominal={macroNominal} />
               </div>
             </div>
