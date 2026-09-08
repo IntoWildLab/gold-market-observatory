@@ -62,6 +62,12 @@ function foundationRow(overrides = {}) {
 function fixture() {
   return {
     manifestGeneratedAt: "now",
+    eventRisk: {
+      availability: "unavailable",
+      stale: false,
+      additionalEventCount: 0,
+      provenance: { usesVerifiedCache: false, hasLiveSourceFailure: false },
+    },
     gold: {},
     macros: [],
     china: {
@@ -118,6 +124,7 @@ function fixture() {
 
 test("5D/20D/60D 人民币黄金归因进入 DesignData 并保留 Au99.99 角色", () => {
   const data = buildDesignData(fixture());
+  assert.equal(data.eventRisk.availability, "unavailable");
   assert.deepEqual(Object.keys(data.china.goldAttribution.windows), WINDOWS);
   assert.equal(data.china.goldAttribution.windows["20D"].gold_contribution_pp, 12);
   assert.equal(data.china.goldAttribution.windows["20D"].deviation_contribution_pp, 14);

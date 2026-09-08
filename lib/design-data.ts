@@ -14,3 +14,4 @@ export type {
   DesignWindow,
   DesignWindowSet,
 } from "./design-data-builder";
+export type { EventRiskView } from "./event-risk-view";

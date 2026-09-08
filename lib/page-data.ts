@@ -11,6 +11,8 @@ import { computeAssessment, computeDrivers, type Assessment, type DriverRow } fr
 import { computeChinaComparison, buildTheoreticalSeries, type ChinaComparison, type TheoreticalResult } from "./china";
 import type { ChinaGoldAttributionData, CnEtfTrackingData } from "./china-analysis";
 import type { CnEtfFoundationData } from "./cn-etf-foundation";
+import { loadEventRiskSnapshot } from "./event-risk-loader";
+import { buildEventRiskView, type EventRiskView } from "./event-risk-view";
 
 export interface MacroKpi {
   seriesId: SeriesId;
@@ -145,14 +147,16 @@ export interface PageData {
   etfFlowsUsd: { date: string; totalUsd: number }[] | null;
   missing: Array<{ seriesId: string; reason: string }>;
   manifestGeneratedAt: string | null;
+  eventRisk: EventRiskView;
 }
 
-export async function buildPageData(): Promise<PageData> {
+export async function buildPageData(now: Date = new Date(), eventRiskSnapshotFile?: string): Promise<PageData> {
   const all = await loadAllSeries();
   const series = Object.fromEntries(all.map((s) => [s.meta.series, s])) as Record<SeriesId, SeriesFile | null>;
   const manifest = await loadManifest();
   const latestSpot = await loadLatestSpot();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
+  const eventRisk = buildEventRiskView(await loadEventRiskSnapshot(eventRiskSnapshotFile), now);
 
   // ---- 黄金 ----
   const goldFile = series.gold_price;
@@ -395,7 +399,7 @@ export async function buildPageData(): Promise<PageData> {
   const drivers = computeDrivers(series);
 
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt: now.toISOString(),
     today,
     series,
     gold,
@@ -416,5 +420,6 @@ export async function buildPageData(): Promise<PageData> {
     etfFlowsUsd: etfFlowsUsd?.rows ?? null,
     missing,
     manifestGeneratedAt: manifest?.generated_at ?? null,
+    eventRisk,
   };
 }
