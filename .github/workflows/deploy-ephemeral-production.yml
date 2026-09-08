@@ -47,7 +47,7 @@ jobs:
 
       - name: Remove checked-in production snapshots
         run: |
-          rm -rf data/series data/derived
+          rm -rf data/series data/derived data/events
           rm -f data/latest-spot.json data/latest-cn-etf.json data/manifest.json
           mkdir -p data/series data/derived
 
@@ -63,6 +63,10 @@ jobs:
               exit 1
             fi
           done
+          if [ -e data/events ]; then
+            echo "::error::Event Risk snapshot directory remains before fetch."
+            exit 1
+          fi
 
       - name: Fetch all production data
         id: fetch
@@ -77,6 +81,27 @@ jobs:
       - name: Run data quality gate
         id: quality
         run: npm run data:check
+
+      - name: Fetch auxiliary Event Risk snapshot
+        id: event-risk-fetch
+        run: |
+          set +e
+          npm run data:fetch:events
+          exit_code=$?
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          if [ "$exit_code" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            echo "::warning::Event Risk auxiliary fetch failed; continuing with Daily Core."
+          fi
+          exit 0
+
+      - name: Write Event Risk diagnostic summary
+        id: event-risk-summary
+        if: always()
+        run: node scripts/report-event-risk.mjs
 
       - name: Remove raw and probe staging before build
         run: rm -rf data/raw scripts/probe-out scripts/probe-out2 scripts/probes/probe-out
@@ -249,10 +274,35 @@ jobs:
             echo "Staged Production smoke test passed: ${route}"
           done
 
+      - name: Verify staged Event Risk render
+        id: event-risk-render
+        env:
+          STAGED_URL: ${{ steps.deploy.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+          npx --yes vercel@59.1.4 curl /design/refined-v4 \
+            --deployment "$STAGED_URL" \
+            --silent --show-error --fail --location \
+            --output "$response_file"
+          node scripts/check-event-risk-render.mjs data/events/event-risk.json "$response_file"
+
       - name: Write staged Production validation summary
         if: always()
         env:
           FETCH_STATUS: ${{ steps.fetch.outcome }}
+          EVENT_RISK_FETCH_STATUS: ${{ steps.event-risk-fetch.outputs.status }}
+          EVENT_RISK_FETCH_EXIT_CODE: ${{ steps.event-risk-fetch.outputs.exit_code }}
+          EVENT_RISK_SNAPSHOT: ${{ steps.event-risk-summary.outputs.snapshot }}
+          EVENT_RISK_AVAILABILITY: ${{ steps.event-risk-summary.outputs.availability }}
+          EVENT_RISK_BLS_STATUS: ${{ steps.event-risk-summary.outputs.bls_status }}
+          EVENT_RISK_BLS_MODE: ${{ steps.event-risk-summary.outputs.bls_mode }}
+          EVENT_RISK_EVENT_COUNT: ${{ steps.event-risk-summary.outputs.event_count }}
+          EVENT_RISK_RENDER_STATUS: ${{ steps.event-risk-render.outputs.status }}
+          EVENT_RISK_RENDER_EXPECTATION: ${{ steps.event-risk-render.outputs.expected_kind }}
           SERIES_COUNT: ${{ steps.dataset.outputs.series_count }}
           DERIVED_COUNT: ${{ steps.dataset.outputs.derived_count }}
           QUALITY_STATUS: ${{ steps.quality.outputs.status }}
@@ -272,6 +322,12 @@ jobs:
             echo "# Ephemeral Staged Production Validation"
             echo
             echo "- Data fetch: **${FETCH_STATUS:-Not run}**"
+            echo "- Event Risk fetch: **${EVENT_RISK_FETCH_STATUS:-Not run}** (exit ${EVENT_RISK_FETCH_EXIT_CODE:-not available})"
+            echo "- Event Risk snapshot: **${EVENT_RISK_SNAPSHOT:-not available}**"
+            echo "- Event Risk availability: **${EVENT_RISK_AVAILABILITY:-not available}**"
+            echo "- Event Risk BLS: **${EVENT_RISK_BLS_STATUS:-not available}** / **${EVENT_RISK_BLS_MODE:-not available}**"
+            echo "- Event Risk event count: **${EVENT_RISK_EVENT_COUNT:-0}**"
+            echo "- Event Risk staged render: **${EVENT_RISK_RENDER_STATUS:-Not run}** (${EVENT_RISK_RENDER_EXPECTATION:-not available})"
             echo "- Series count: **${SERIES_COUNT:-Not available}**"
             echo "- Derived count: **${DERIVED_COUNT:-Not available}**"
             echo "- Quality: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"

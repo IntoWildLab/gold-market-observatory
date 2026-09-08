@@ -50,7 +50,7 @@ jobs:
 
       - name: Remove checked-in production snapshots
         run: |
-          rm -rf data/series data/derived
+          rm -rf data/series data/derived data/events
           rm -f data/latest-spot.json data/latest-cn-etf.json data/manifest.json
           mkdir -p data/series data/derived
 
@@ -66,6 +66,10 @@ jobs:
               exit 1
             fi
           done
+          if [ -e data/events ]; then
+            echo "::error::Event Risk snapshot directory remains before fetch."
+            exit 1
+          fi
 
       - name: Fetch all production data
         id: fetch
@@ -80,6 +84,27 @@ jobs:
       - name: Run data quality gate
         id: quality
         run: npm run data:check
+
+      - name: Fetch auxiliary Event Risk snapshot
+        id: event-risk-fetch
+        run: |
+          set +e
+          npm run data:fetch:events
+          exit_code=$?
+          set -e
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          if [ "$exit_code" -eq 0 ]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            echo "::warning::Event Risk auxiliary fetch failed; continuing with Daily Core."
+          fi
+          exit 0
+
+      - name: Write Event Risk diagnostic summary
+        id: event-risk-summary
+        if: always()
+        run: node scripts/report-event-risk.mjs
 
       - name: Remove raw and probe staging before build
         run: rm -rf data/raw scripts/probe-out scripts/probe-out2 scripts/probes/probe-out
