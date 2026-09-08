@@ -56,11 +56,11 @@ export default function EventRiskStrip({ eventRisk, now = new Date() }: { eventR
     return (
       <aside
         aria-label="Event risk for the next 72 hours"
-        className="min-w-0 rounded-lg border border-l-2 px-3.5 py-3 sm:px-4"
+        className="min-w-0 rounded-lg border border-l-2 px-3.5 py-3.5 sm:px-4"
         style={{ background: "#fdfbf7", borderColor: eventRisk.availability === "unavailable" ? "#d8d0c2" : "#d8c7a4" }}
       >
         <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-          <div className="font-mono text-[12px] font-semibold tracking-[0.18em] text-[#7a4f18]">EVENT RISK · 72H</div>
+          <div className="font-mono text-[12px] font-semibold tracking-[0.15em] text-[#7a4f18]">EVENT RISK · 72H</div>
           <div className="text-[14px] font-medium text-[#575249]">{emptyMessage}</div>
         </div>
         {staleWithoutEvent && eventRisk.generatedAt && <div className="mt-1 text-[12px] text-[#8a857a]">Last schedule update · {formatEventTimeEt(eventRisk.generatedAt)}</div>}
@@ -75,21 +75,21 @@ export default function EventRiskStrip({ eventRisk, now = new Date() }: { eventR
   return (
     <aside
       aria-label="Event risk for the next 72 hours"
-      className="min-w-0 rounded-lg border border-l-[3px] px-3.5 py-3 sm:px-4"
+      className="min-w-0 rounded-lg border border-l-[3px] px-3.5 py-3.5 sm:px-4"
       style={{ background: visual.background, borderColor: visual.border }}
     >
       <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-[9.5rem_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
         <div className="min-w-0">
-          <div className="font-mono text-[12px] font-semibold tracking-[0.18em] text-[#7a4f18]">EVENT RISK · 72H</div>
+          <div className="font-mono text-[12px] font-semibold tracking-[0.15em] text-[#7a4f18]">EVENT RISK · 72H</div>
           <div className={`mt-1 inline-flex rounded border px-1.5 py-0.5 text-[12px] font-semibold tracking-[0.08em] ${event.impact === "high" ? "text-[#65400f]" : "text-[#7d766a]"}`} style={{ borderColor: event.impact === "high" ? "#c59a55" : "#ded7ca" }}>
             {impact}
           </div>
         </div>
 
         <div className="min-w-0">
-          <div className="break-words text-[15px] font-semibold leading-snug text-[#2b2a26] sm:text-base">{event.title}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#7d766a] sm:text-[13px]">
-            <span className="font-mono text-[#575249]">{formatEventTimeEt(event.scheduledAt)}</span>
+          <div className="break-words text-[15px] font-semibold leading-snug text-[#2b2a26] sm:text-[17px]">{event.title}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[#8a857a] sm:text-[13px]">
+            <span className="font-mono text-[#6b6459]">{formatEventTimeEt(event.scheduledAt)}</span>
             <span aria-hidden="true">·</span>
             <span>Direction unknown</span>
             {eventRisk.additionalEventCount > 0 && (
@@ -107,9 +107,9 @@ export default function EventRiskStrip({ eventRisk, now = new Date() }: { eventR
           </div>
         </div>
 
-        <div className="flex items-baseline justify-between gap-3 border-t pt-2 sm:block sm:border-0 sm:pt-0 sm:text-right" style={{ borderColor: "#e8e1d1" }}>
-          <span className="text-[12px] text-[#8a857a] sm:block">TIME TO EVENT</span>
-          <span suppressHydrationWarning className={`font-mono leading-none ${visual.timingClass}`} style={{ color: visual.timing }}>{timing}</span>
+        <div className="flex items-baseline justify-between gap-3 border-t pt-2 sm:flex sm:flex-col sm:items-end sm:justify-center sm:gap-0.5 sm:border-0 sm:pt-0 sm:text-right" style={{ borderColor: "#e8e1d1" }}>
+          <span className="text-[12px] leading-none text-[#8a857a]">TIME TO EVENT</span>
+          <span suppressHydrationWarning className={`block font-mono leading-none ${visual.timingClass}`} style={{ color: visual.timing }}>{timing}</span>
         </div>
       </div>
     </aside>
