@@ -1,10 +1,10 @@
-import { appendFile, open, readFile, readdir, stat } from "node:fs/promises";
+import { access, appendFile, open, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 const root = process.cwd();
 
-const requiredSeries = [
+export const coreRequiredSeries = [
   "au99_99",
   "cb_gold_purchases",
   "china_gold_reserves",
@@ -12,7 +12,6 @@ const requiredSeries = [
   "cn_gold_etf_nav",
   "cn_gold_etf_price",
   "cn_gold_etf_shares",
-  "cn_gold_etf_shares_daily",
   "dxy_proxy",
   "gld_holdings",
   "gold_etf_flows",
@@ -24,101 +23,226 @@ const requiredSeries = [
   "usd_cny",
 ];
 
-const requiredDerived = [
+export const auxiliarySeries = ["cn_gold_etf_shares_daily"];
+
+export const coreRequiredDerived = [
   "china-gold-attribution.json",
-  "cn-gold-etf-foundation.json",
   "cn-gold-etf-tracking.json",
   "gold-etf-flows-usd.json",
   "gold-etf-regional.json",
 ];
 
-export const requiredRuntimeFiles = [
-  ...requiredSeries.map((id) => `data/series/${id}.json`),
-  ...requiredDerived.map((name) => `data/derived/${name}`),
+export const auxiliaryDerived = ["cn-gold-etf-foundation.json"];
+
+export const coreRuntimeFiles = [
+  ...coreRequiredSeries.map((id) => `data/series/${id}.json`),
+  ...coreRequiredDerived.map((name) => `data/derived/${name}`),
   "data/latest-cn-etf.json",
   "data/latest-spot.json",
   "data/manifest.json",
 ];
+export const auxiliaryRuntimeFiles = [
+  ...auxiliarySeries.map((id) => `data/series/${id}.json`),
+  ...auxiliaryDerived.map((name) => `data/derived/${name}`),
+];
+// Compatibility export for existing consumers that need the complete possible set.
+export const requiredRuntimeFiles = [...coreRuntimeFiles, ...auxiliaryRuntimeFiles];
 
 function fail(message) {
   console.error(`::error::${message}`);
   process.exitCode = 1;
 }
 
-async function readJson(relativePath) {
+async function readJson(relativePath, rootDir = root) {
   try {
-    return JSON.parse(await readFile(path.join(root, relativePath), "utf8"));
+    return JSON.parse(await readFile(path.join(rootDir, relativePath), "utf8"));
   } catch (error) {
     throw new Error(`${relativePath} is missing or invalid JSON: ${error.message}`);
   }
 }
 
-async function writeOutputs(values) {
-  if (!process.env.GITHUB_OUTPUT) return;
+async function writeOutputs(values, emitOutputs = true) {
+  if (!emitOutputs || !process.env.GITHUB_OUTPUT) return;
   const lines = Object.entries(values).map(([key, value]) => `${key}=${value}`).join("\n");
   await appendFile(process.env.GITHUB_OUTPUT, `${lines}\n`, "utf8");
 }
 
-async function validateData() {
-  const actualSeries = (await readdir(path.join(root, "data", "series")))
+async function existingAuxiliaryRuntimeFiles(rootDir) {
+  const present = [];
+  for (const file of auxiliaryRuntimeFiles) {
+    try {
+      await access(path.join(rootDir, file));
+      present.push(file);
+    } catch {
+      // Auxiliary runtime data is intentionally optional when acquisition fails.
+    }
+  }
+  return present;
+}
+
+function validateDailyShares(data, now = new Date()) {
+  const id = "cn_gold_etf_shares_daily";
+  if (data?.meta?.series !== id) throw new Error(`${id}: meta.series does not match filename`);
+  if (data?.meta?.unit !== "hundred_million_shares" || data?.meta?.frequency !== "daily") {
+    throw new Error(`${id}: unit or frequency does not match the contract`);
+  }
+  if (!Array.isArray(data?.observations) || data.observations.length === 0) throw new Error(`${id}: observations are empty`);
+  if (data.all_real !== true || data.observations.some((item) => item?.is_mock === true)) {
+    throw new Error(`${id}: mock or non-real observations are not allowed`);
+  }
+  const seen = new Set();
+  let previousDate = "";
+  for (const [index, item] of data.observations.entries()) {
+    if (item?.series !== id) throw new Error(`${id}: observation ${index} has the wrong series id`);
+    if (typeof item?.value !== "number" || !Number.isFinite(item.value) || item.value <= 0) {
+      throw new Error(`${id}: observation ${index} must be finite and positive`);
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(item?.observation_date ?? "")) throw new Error(`${id}: observation ${index} has an invalid date`);
+    const date = new Date(`${item.observation_date}T00:00:00Z`);
+    if (!Number.isFinite(date.getTime()) || date.getTime() > now.getTime() + 2 * 86_400_000) {
+      throw new Error(`${id}: observation ${index} has an invalid or future date`);
+    }
+    if (seen.has(item.observation_date)) throw new Error(`${id}: duplicate date ${item.observation_date}`);
+    if (item.observation_date < previousDate) throw new Error(`${id}: observations are not sorted by date`);
+    if (item.security_code !== "518880" || item.raw_unit !== "万份" || !Number.isFinite(item.raw_value)) {
+      throw new Error(`${id}: observation ${index} lacks SSE raw lineage`);
+    }
+    if (Math.abs(item.value - item.raw_value / 10000) > 1e-10) {
+      throw new Error(`${id}: observation ${index} has an incorrect 万份-to-亿份 conversion`);
+    }
+    seen.add(item.observation_date);
+    previousDate = item.observation_date;
+  }
+  if (data.last_observation_date !== data.observations.at(-1).observation_date) {
+    throw new Error(`${id}: last_observation_date does not match the final observation`);
+  }
+}
+
+function validateFoundation(data) {
+  const name = "cn-gold-etf-foundation.json";
+  if (data?.etf_code !== "518880") throw new Error(`${name}: etf_code must be 518880`);
+  if (data?.units?.price !== "cny_per_share" || data?.units?.nav !== "cny_per_share"
+    || data?.units?.shares !== "hundred_million_shares" || data?.units?.estimated_aum !== "cny") {
+    throw new Error(`${name}: units contract is invalid`);
+  }
+  if (!Array.isArray(data?.rows) || data.rows.length === 0) throw new Error(`${name}: required derived output is empty`);
+  const allowedAlignment = new Set(["same_date", "nav_lagged", "price_missing", "nav_missing", "no_common_date"]);
+  let previousDate = "";
+  for (const [index, row] of data.rows.entries()) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(row?.date ?? "") || row.date < previousDate) throw new Error(`${name}: row ${index} has an invalid or unsorted date`);
+    if (!allowedAlignment.has(row.alignmentStatus)) throw new Error(`${name}: row ${index} has invalid alignmentStatus`);
+    for (const field of ["price", "nav", "sharesHundredMillion", "premiumDiscountPct", "estimatedAumCny", "marketEffectCny", "shareEffectCny", "aumChangeCny", "decompositionResidualCny"]) {
+      if (row[field] !== null && (typeof row[field] !== "number" || !Number.isFinite(row[field]))) {
+        throw new Error(`${name}: row ${index} has non-finite ${field}`);
+      }
+    }
+    if (row.decompositionResidualCny !== null && Math.abs(row.decompositionResidualCny) > 1e-4) {
+      throw new Error(`${name}: row ${index} decomposition does not close`);
+    }
+    previousDate = row.date;
+  }
+}
+
+export async function validateData({ rootDir = root, emitOutputs = rootDir === root, now = new Date() } = {}) {
+  const actualSeries = (await readdir(path.join(rootDir, "data", "series")))
     .filter((name) => name.endsWith(".json"))
     .map((name) => name.slice(0, -5))
     .sort();
-  const expectedSeries = [...requiredSeries].sort();
-  if (JSON.stringify(actualSeries) !== JSON.stringify(expectedSeries)) {
-    throw new Error(`Expected exactly ${expectedSeries.length} production series; found ${actualSeries.length}. Missing or unexpected series: ${[
-      ...expectedSeries.filter((id) => !actualSeries.includes(id)).map((id) => `missing ${id}`),
-      ...actualSeries.filter((id) => !expectedSeries.includes(id)).map((id) => `unexpected ${id}`),
+  const allowedSeries = [...coreRequiredSeries, ...auxiliarySeries].sort();
+  const missingCoreSeries = coreRequiredSeries.filter((id) => !actualSeries.includes(id));
+  const unexpectedSeries = actualSeries.filter((id) => !allowedSeries.includes(id));
+  if (missingCoreSeries.length || unexpectedSeries.length) {
+    throw new Error(`Production series contract failed; found ${actualSeries.length}. Missing or unexpected series: ${[
+      ...missingCoreSeries.map((id) => `missing ${id}`),
+      ...unexpectedSeries.map((id) => `unexpected ${id}`),
     ].join(", ") || "unknown mismatch"}`);
   }
 
   const latestDates = [];
-  for (const id of requiredSeries) {
-    const data = await readJson(`data/series/${id}.json`);
+  for (const id of coreRequiredSeries) {
+    const data = await readJson(`data/series/${id}.json`, rootDir);
     if (data?.meta?.series !== id) throw new Error(`${id}: meta.series does not match filename`);
     if (!Array.isArray(data.observations) || data.observations.length === 0) throw new Error(`${id}: observations are empty`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(data.last_observation_date ?? "")) throw new Error(`${id}: last_observation_date is invalid`);
     latestDates.push(data.last_observation_date);
   }
-
-  const actualDerived = (await readdir(path.join(root, "data", "derived")))
-    .filter((name) => name.endsWith(".json"))
-    .sort();
-  const expectedDerived = [...requiredDerived].sort();
-  if (JSON.stringify(actualDerived) !== JSON.stringify(expectedDerived)) {
-    throw new Error(`Expected exactly ${expectedDerived.length} derived files; found ${actualDerived.length}`);
+  const presentAuxSeries = auxiliarySeries.filter((id) => actualSeries.includes(id));
+  if (presentAuxSeries.includes("cn_gold_etf_shares_daily")) {
+    validateDailyShares(await readJson("data/series/cn_gold_etf_shares_daily.json", rootDir), now);
   }
 
-  for (const name of requiredDerived) {
-    const data = await readJson(`data/derived/${name}`);
+  const actualDerived = (await readdir(path.join(rootDir, "data", "derived")))
+    .filter((name) => name.endsWith(".json"))
+    .sort();
+  const allowedDerived = [...coreRequiredDerived, ...auxiliaryDerived].sort();
+  const missingCoreDerived = coreRequiredDerived.filter((name) => !actualDerived.includes(name));
+  const unexpectedDerived = actualDerived.filter((name) => !allowedDerived.includes(name));
+  if (missingCoreDerived.length || unexpectedDerived.length) {
+    throw new Error(`Derived contract failed; found ${actualDerived.length}. Missing or unexpected derived files: ${[
+      ...missingCoreDerived.map((name) => `missing ${name}`),
+      ...unexpectedDerived.map((name) => `unexpected ${name}`),
+    ].join(", ") || "unknown mismatch"}`);
+  }
+
+  for (const name of coreRequiredDerived) {
+    const data = await readJson(`data/derived/${name}`, rootDir);
     const hasRows = Array.isArray(data?.rows) && data.rows.length > 0;
     const hasWindows = Array.isArray(data?.windows) && data.windows.length > 0;
     if (!hasRows && !hasWindows) throw new Error(`${name}: required derived output is empty`);
   }
+  const presentAuxDerived = auxiliaryDerived.filter((name) => actualDerived.includes(name));
+  if (presentAuxDerived.includes("cn-gold-etf-foundation.json")) {
+    validateFoundation(await readJson("data/derived/cn-gold-etf-foundation.json", rootDir));
+  }
 
-  const latestSpot = await readJson("data/latest-spot.json");
+  const latestSpot = await readJson("data/latest-spot.json", rootDir);
   if (!(latestSpot?.price_usd > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(latestSpot?.as_of_date ?? "")) {
     throw new Error("latest-spot.json is incomplete");
   }
-  const latestCnEtf = await readJson("data/latest-cn-etf.json");
+  const latestCnEtf = await readJson("data/latest-cn-etf.json", rootDir);
   if (!(latestCnEtf?.price > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(latestCnEtf?.quote_date ?? "")) {
     throw new Error("latest-cn-etf.json is incomplete");
   }
 
-  const manifest = await readJson("data/manifest.json");
-  const manifestIds = (Array.isArray(manifest?.series) ? manifest.series : []).map((item) => item?.series).sort();
-  if (JSON.stringify(manifestIds) !== JSON.stringify(expectedSeries)) {
-    throw new Error(`manifest.json must contain exactly ${expectedSeries.length} production series`);
+  const manifest = await readJson("data/manifest.json", rootDir);
+  const manifestIds = (Array.isArray(manifest?.series) ? manifest.series : []).map((item) => item?.series);
+  const duplicateManifestIds = manifestIds.filter((id, index) => manifestIds.indexOf(id) !== index);
+  const missingManifestCore = coreRequiredSeries.filter((id) => !manifestIds.includes(id));
+  const unexpectedManifestIds = manifestIds.filter((id) => !allowedSeries.includes(id));
+  if (duplicateManifestIds.length || missingManifestCore.length || unexpectedManifestIds.length) {
+    throw new Error(`manifest.json series contract failed: ${[
+      ...missingManifestCore.map((id) => `missing ${id}`),
+      ...unexpectedManifestIds.map((id) => `unexpected ${id}`),
+      ...duplicateManifestIds.map((id) => `duplicate ${id}`),
+    ].join(", ")}`);
   }
 
   latestDates.sort();
-  await writeOutputs({
-    series_count: requiredSeries.length,
-    derived_count: requiredDerived.length,
+  const auxSeriesCount = presentAuxSeries.length;
+  const auxDerivedCount = presentAuxDerived.length;
+  const datasetStatus = auxSeriesCount === auxiliarySeries.length && auxDerivedCount === auxiliaryDerived.length ? "complete" : "degraded";
+  const outputs = {
+    core_series_count: coreRequiredSeries.length,
+    core_series_expected: coreRequiredSeries.length,
+    aux_series_count: auxSeriesCount,
+    aux_series_expected: auxiliarySeries.length,
+    core_derived_count: coreRequiredDerived.length,
+    core_derived_expected: coreRequiredDerived.length,
+    aux_derived_count: auxDerivedCount,
+    aux_derived_expected: auxiliaryDerived.length,
+    dataset_status: datasetStatus,
+    series_count: actualSeries.length,
+    derived_count: actualDerived.length,
     latest_date_min: latestDates[0],
     latest_date_max: latestDates.at(-1),
-  });
-  console.log(`Ephemeral dataset complete: ${requiredSeries.length} series, ${requiredDerived.length} derived files, 2 latest files, and manifest.`);
+  };
+  await writeOutputs(outputs, emitOutputs);
+  console.log(`Core series: ${coreRequiredSeries.length}/${coreRequiredSeries.length}`);
+  console.log(`Auxiliary series: ${auxSeriesCount}/${auxiliarySeries.length}`);
+  console.log(`Core derived: ${coreRequiredDerived.length}/${coreRequiredDerived.length}`);
+  console.log(`Auxiliary derived: ${auxDerivedCount}/${auxiliaryDerived.length}`);
+  console.log(`Dataset status: ${datasetStatus}`);
+  return outputs;
 }
 
 async function listFiles(directory) {
@@ -151,8 +275,8 @@ async function listFunctionBundles(directory) {
   return bundles;
 }
 
-function projectRelative(file) {
-  return path.relative(root, file).split(path.sep).join("/");
+function projectRelative(file, rootDir = root) {
+  return path.relative(rootDir, file).split(path.sep).join("/");
 }
 
 async function fileContains(file, needle) {
@@ -173,8 +297,8 @@ async function fileContains(file, needle) {
   }
 }
 
-async function validateTrace() {
-  const nextDir = path.join(root, ".next");
+export async function validateTrace({ rootDir = root, secret = process.env.EPHEMERAL_SECRET_TO_REJECT, emitOutputs = rootDir === root } = {}) {
+  const nextDir = path.join(rootDir, ".next");
   const buildFiles = await listFiles(nextDir);
   const traceFiles = buildFiles.filter((file) => file.endsWith(".nft.json"));
   if (!traceFiles.length) throw new Error("No Next.js output trace files were found");
@@ -184,12 +308,14 @@ async function validateTrace() {
     const trace = JSON.parse(await readFile(traceFile, "utf8"));
     for (const entry of Array.isArray(trace?.files) ? trace.files : []) {
       const resolved = path.resolve(path.dirname(traceFile), entry);
-      const relative = projectRelative(resolved);
+      const relative = projectRelative(resolved, rootDir);
       if (!relative.startsWith("../")) traced.add(relative);
     }
   }
 
-  const missing = requiredRuntimeFiles.filter((file) => !traced.has(file));
+  const presentAuxiliary = await existingAuxiliaryRuntimeFiles(rootDir);
+  const expectedRuntimeFiles = [...coreRuntimeFiles, ...presentAuxiliary];
+  const missing = expectedRuntimeFiles.filter((file) => !traced.has(file));
   if (missing.length) throw new Error(`Required runtime data is absent from Next.js traces: ${missing.join(", ")}`);
 
   const forbidden = [...traced].filter((file) =>
@@ -200,15 +326,15 @@ async function validateTrace() {
   );
   if (forbidden.length) throw new Error(`Forbidden staging or environment files are present in Next.js traces: ${forbidden.join(", ")}`);
 
-  const secret = process.env.EPHEMERAL_SECRET_TO_REJECT;
   if (!secret) throw new Error("EPHEMERAL_SECRET_TO_REJECT is required for build-output secret scanning");
   const needle = Buffer.from(secret);
   for (const file of buildFiles) {
     if (await fileContains(file, needle)) throw new Error("The FRED_API_KEY value was found in the Next.js build output");
   }
 
-  await writeOutputs({ raw_status: "clean" });
-  console.log(`Build trace complete: ${requiredRuntimeFiles.length} runtime data files present; raw, probe, environment, and secret checks passed.`);
+  await writeOutputs({ raw_status: "clean", runtime_file_count: expectedRuntimeFiles.length }, emitOutputs);
+  console.log(`Build trace complete: ${expectedRuntimeFiles.length} required runtime data files present; raw, probe, environment, and secret checks passed.`);
+  return { runtimeFileCount: expectedRuntimeFiles.length, expectedRuntimeFiles };
 }
 
 function slashPath(file) {
@@ -304,7 +430,7 @@ async function dataTraceEntrypoints(rootDir) {
     const tracedRuntimePaths = new Set((Array.isArray(trace?.files) ? trace.files : []).map((file) =>
       slashPath(path.relative(rootDir, path.resolve(path.dirname(traceFile), file)))
     ));
-    if (requiredRuntimeFiles.some((file) => tracedRuntimePaths.has(file))) {
+    if ([...coreRuntimeFiles, ...auxiliaryRuntimeFiles].some((file) => tracedRuntimePaths.has(file))) {
       entrypoints.add(slashPath(path.relative(rootDir, traceFile.slice(0, -".nft.json".length))));
     }
   }
@@ -328,6 +454,8 @@ export async function validateVercelOutput({
   if (!bundleDirs.length) throw new Error("No Vercel Server Function bundles were found");
 
   const tracedDataEntrypoints = await dataTraceEntrypoints(rootDir);
+  const presentAuxiliary = await existingAuxiliaryRuntimeFiles(rootDir);
+  const expectedRuntimeFiles = [...coreRuntimeFiles, ...presentAuxiliary];
   const mappedDataEntrypoints = new Set();
   const dataBundles = [];
   const scanFiles = new Set(outputFiles);
@@ -344,10 +472,10 @@ export async function validateVercelOutput({
 
     const bundleDataEntrypoints = [...tracedDataEntrypoints].filter((file) => bundle.runtimePaths.has(file));
     for (const entrypoint of bundleDataEntrypoints) mappedDataEntrypoints.add(entrypoint);
-    const hasRuntimeData = requiredRuntimeFiles.some((file) => bundle.runtimePaths.has(file));
+    const hasRuntimeData = [...coreRuntimeFiles, ...auxiliaryRuntimeFiles].some((file) => bundle.runtimePaths.has(file));
     if (!hasRuntimeData && !bundleDataEntrypoints.length) continue;
 
-    const missing = requiredRuntimeFiles.filter((file) => !bundle.runtimePaths.has(file));
+    const missing = expectedRuntimeFiles.filter((file) => !bundle.runtimePaths.has(file));
     if (missing.length) {
       throw new Error(`Vercel function ${bundleName} is missing required runtime data: ${missing.join(", ")}`);
     }
@@ -378,10 +506,10 @@ export async function validateVercelOutput({
     output_status: "clean",
     function_bundle_count: bundleDirs.length,
     data_bundle_count: dataBundles.length,
-    runtime_file_count: requiredRuntimeFiles.length,
+    runtime_file_count: expectedRuntimeFiles.length,
   });
-  console.log(`Vercel output complete: ${dataBundles.length} data-dependent function bundle(s), each with ${requiredRuntimeFiles.length} runtime data files; raw, probe, environment, and secret checks passed.`);
-  return { bundleCount: bundleDirs.length, dataBundleCount: dataBundles.length, dataBundles };
+  console.log(`Vercel output complete: ${dataBundles.length} data-dependent function bundle(s), each with ${expectedRuntimeFiles.length} required runtime data files; raw, probe, environment, and secret checks passed.`);
+  return { bundleCount: bundleDirs.length, dataBundleCount: dataBundles.length, dataBundles, runtimeFileCount: expectedRuntimeFiles.length };
 }
 
 const mode = process.argv[2];

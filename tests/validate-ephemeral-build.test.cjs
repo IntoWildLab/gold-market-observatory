@@ -12,7 +12,7 @@ async function loadValidator() {
   return import(validatorUrl);
 }
 
-async function createFixture({ mapped = false } = {}) {
+async function createFixture({ mapped = false, auxiliarySource = false } = {}) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), "vercel-output-validator-"));
   const bundleDir = path.join(rootDir, ".vercel", "output", "functions", "page.func");
   await mkdir(bundleDir, { recursive: true });
@@ -32,6 +32,10 @@ async function createFixture({ mapped = false } = {}) {
       await writeFile(target, "{}");
     }
   }
+  if (auxiliarySource && !mapped) {
+    const { auxiliaryRuntimeFiles } = await loadValidator();
+    for (const runtimeFile of auxiliaryRuntimeFiles) await writeJson(path.join(rootDir, runtimeFile), {});
+  }
   await writeFile(path.join(bundleDir, ".vc-config.json"), JSON.stringify({
     runtime: "nodejs22.x",
     handler: "index.js",
@@ -40,6 +44,125 @@ async function createFixture({ mapped = false } = {}) {
   await writeFile(path.join(bundleDir, "index.js"), "module.exports = {};");
   return { rootDir, bundleDir, requiredRuntimeFiles };
 }
+
+async function writeJson(file, value) {
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, JSON.stringify(value));
+}
+
+async function createDatasetFixture({ auxiliarySeries = true, auxiliaryDerived = true } = {}) {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), "dataset-validator-"));
+  const validator = await loadValidator();
+  const observationDate = "2026-09-01";
+  for (const id of validator.coreRequiredSeries) {
+    await writeJson(path.join(rootDir, "data", "series", `${id}.json`), {
+      meta: { series: id },
+      observations: [{ series: id, observation_date: observationDate, value: 1 }],
+      last_observation_date: observationDate,
+    });
+  }
+  if (auxiliarySeries) {
+    await writeJson(path.join(rootDir, "data", "series", "cn_gold_etf_shares_daily.json"), {
+      meta: { series: "cn_gold_etf_shares_daily", unit: "hundred_million_shares", frequency: "daily" },
+      observations: [{ series: "cn_gold_etf_shares_daily", observation_date: observationDate, value: 12.3456, security_code: "518880", raw_unit: "万份", raw_value: 123456 }],
+      last_observation_date: observationDate,
+      all_real: true,
+    });
+  }
+  for (const name of validator.coreRequiredDerived) {
+    await writeJson(path.join(rootDir, "data", "derived", name), { windows: [{}] });
+  }
+  if (auxiliaryDerived) {
+    await writeJson(path.join(rootDir, "data", "derived", "cn-gold-etf-foundation.json"), {
+      etf_code: "518880",
+      units: { price: "cny_per_share", nav: "cny_per_share", shares: "hundred_million_shares", estimated_aum: "cny" },
+      rows: [{ date: observationDate, price: 10, nav: 10, sharesHundredMillion: 12, premiumDiscountPct: 0, estimatedAumCny: 12000000000, marketEffectCny: null, shareEffectCny: null, aumChangeCny: null, decompositionResidualCny: null, alignmentStatus: "same_date" }],
+    });
+  }
+  const manifestIds = [...validator.coreRequiredSeries, ...(auxiliarySeries ? validator.auxiliarySeries : [])];
+  await writeJson(path.join(rootDir, "data", "manifest.json"), { series: manifestIds.map((series) => ({ series })) });
+  await writeJson(path.join(rootDir, "data", "latest-spot.json"), { price_usd: 2500, as_of_date: observationDate });
+  await writeJson(path.join(rootDir, "data", "latest-cn-etf.json"), { price: 10, quote_date: observationDate });
+  return { rootDir, validator };
+}
+
+async function withDataset(options, callback) {
+  const fixture = await createDatasetFixture(options);
+  try {
+    await callback(fixture);
+  } finally {
+    await rm(fixture.rootDir, { recursive: true, force: true });
+  }
+}
+
+test("accepts 16 core series and both auxiliary artifacts as complete", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    const result = await validator.validateData({ rootDir, emitOutputs: false, now: new Date("2026-09-14T00:00:00Z") });
+    assert.equal(result.dataset_status, "complete");
+    assert.equal(result.core_series_count, 16);
+    assert.equal(result.aux_series_count, 1);
+    assert.equal(result.core_derived_count, 4);
+    assert.equal(result.aux_derived_count, 1);
+  });
+});
+
+test("accepts 16 core-only series and derived data as degraded", async () => {
+  await withDataset({ auxiliarySeries: false, auxiliaryDerived: false }, async ({ rootDir, validator }) => {
+    const result = await validator.validateData({ rootDir, emitOutputs: false });
+    assert.equal(result.dataset_status, "degraded");
+    assert.equal(result.series_count, 16);
+    assert.equal(result.derived_count, 4);
+  });
+});
+
+test("rejects a missing core series", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    await rm(path.join(rootDir, "data", "series", "gold_price.json"));
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /missing gold_price/);
+  });
+});
+
+test("rejects an unknown series", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    await writeJson(path.join(rootDir, "data", "series", "unknown.json"), {});
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /unexpected unknown/);
+  });
+});
+
+test("rejects malformed auxiliary daily shares", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    const file = path.join(rootDir, "data", "series", "cn_gold_etf_shares_daily.json");
+    const data = JSON.parse(await readFile(file, "utf8"));
+    data.observations[0].raw_unit = "shares";
+    await writeJson(file, data);
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /lacks SSE raw lineage/);
+  });
+});
+
+test("rejects a manifest missing a core series", async () => {
+  await withDataset({ auxiliarySeries: false, auxiliaryDerived: false }, async ({ rootDir, validator }) => {
+    const file = path.join(rootDir, "data", "manifest.json");
+    const data = JSON.parse(await readFile(file, "utf8"));
+    data.series = data.series.filter((item) => item.series !== "us10y_real");
+    await writeJson(file, data);
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /missing us10y_real/);
+  });
+});
+
+test("rejects a missing core derived file", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    await rm(path.join(rootDir, "data", "derived", "china-gold-attribution.json"));
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /missing china-gold-attribution\.json/);
+  });
+});
+
+test("rejects malformed auxiliary foundation", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    const file = path.join(rootDir, "data", "derived", "cn-gold-etf-foundation.json");
+    await writeJson(file, { etf_code: "not-518880", rows: [{}] });
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /etf_code must be 518880/);
+  });
+});
 
 async function withFixture(options, callback) {
   const fixture = await createFixture(options);
@@ -64,6 +187,64 @@ test("accepts exact runtime destinations declared by filePathMap", async () => {
     const result = await validateVercelOutput({ rootDir, secret, emitOutputs: false });
     assert.equal(result.dataBundleCount, 1);
   });
+});
+
+test("accepts traces and Vercel output without absent auxiliary runtime files", async () => {
+  await withFixture({}, async ({ rootDir, bundleDir }) => {
+    const { validateVercelOutput, auxiliaryRuntimeFiles } = await loadValidator();
+    for (const file of auxiliaryRuntimeFiles) await rm(path.join(bundleDir, file));
+    const result = await validateVercelOutput({ rootDir, secret, emitOutputs: false });
+    assert.equal(result.runtimeFileCount, 23);
+  });
+});
+
+test("rejects Vercel output when present auxiliary runtime data is not bundled", async () => {
+  await withFixture({ auxiliarySource: true }, async ({ rootDir, bundleDir }) => {
+    const { validateVercelOutput, auxiliaryRuntimeFiles } = await loadValidator();
+    for (const file of auxiliaryRuntimeFiles) await rm(path.join(bundleDir, file));
+    await assert.rejects(
+      validateVercelOutput({ rootDir, secret, emitOutputs: false }),
+      /cn_gold_etf_shares_daily\.json/,
+    );
+  });
+});
+
+async function createTraceFixture({ auxiliarySource = false, traceAuxiliary = false } = {}) {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), "trace-validator-"));
+  const { coreRuntimeFiles, auxiliaryRuntimeFiles } = await loadValidator();
+  if (auxiliarySource) {
+    for (const file of auxiliaryRuntimeFiles) await writeJson(path.join(rootDir, file), {});
+  }
+  const entrypoint = path.join(rootDir, ".next", "server", "app", "page.js");
+  await mkdir(path.dirname(entrypoint), { recursive: true });
+  await writeFile(entrypoint, "module.exports = {};");
+  const traced = [...coreRuntimeFiles, ...(traceAuxiliary ? auxiliaryRuntimeFiles : [])];
+  await writeFile(`${entrypoint}.nft.json`, JSON.stringify({
+    version: 1,
+    files: traced.map((file) => path.relative(path.dirname(entrypoint), path.join(rootDir, file))),
+  }));
+  return { rootDir };
+}
+
+test("accepts Next.js traces when auxiliary source files are absent", async () => {
+  const fixture = await createTraceFixture();
+  try {
+    const { validateTrace } = await loadValidator();
+    const result = await validateTrace({ rootDir: fixture.rootDir, secret, emitOutputs: false });
+    assert.equal(result.runtimeFileCount, 23);
+  } finally {
+    await rm(fixture.rootDir, { recursive: true, force: true });
+  }
+});
+
+test("rejects Next.js traces when present auxiliary files are not traced", async () => {
+  const fixture = await createTraceFixture({ auxiliarySource: true, traceAuxiliary: false });
+  try {
+    const { validateTrace } = await loadValidator();
+    await assert.rejects(validateTrace({ rootDir: fixture.rootDir, secret, emitOutputs: false }), /cn_gold_etf_shares_daily\.json/);
+  } finally {
+    await rm(fixture.rootDir, { recursive: true, force: true });
+  }
 });
 
 test("does not accept a same-name file in an unrelated directory", async () => {

@@ -5,13 +5,12 @@ import { validateSeriesData, validateChinaAttributionData, validateCnEtfTracking
 const root = process.cwd();
 const seriesDir = path.join(root, "data", "series");
 
-const required = [
+const coreRequired = [
   "gold_price",
   "au99_99",
   "usd_cny",
   "cn_gold_etf_price",
   "cn_gold_etf_nav",
-  "cn_gold_etf_shares_daily",
   "dxy_proxy",
   "us10y_real",
   "us10y_nominal",
@@ -24,6 +23,7 @@ const required = [
   "china_gold_reserves_usd",
   "cn_gold_etf_shares",
 ];
+const auxiliary = ["cn_gold_etf_shares_daily"];
 
 // Calendar-day tolerances intentionally include weekends, market holidays and
 // normal publication lag. Crossing warnDays is informative; maxDays is fatal.
@@ -60,13 +60,17 @@ function fail(message) {
   console.error(`::error::${message}`);
 }
 
-for (const id of required) {
+for (const id of [...coreRequired, ...auxiliary]) {
   let data;
   try {
     data = JSON.parse(await readFile(path.join(seriesDir, `${id}.json`), "utf8"));
     loadedSeries.set(id, data);
-  } catch {
-    fail(`${id}: required series file is missing or invalid JSON`);
+  } catch (error) {
+    if (auxiliary.includes(id) && error?.code === "ENOENT") {
+      warn(`Auxiliary capability unavailable: ${id}`);
+      continue;
+    }
+    fail(`${id}: ${auxiliary.includes(id) ? "auxiliary" : "required"} series file is missing or invalid JSON`);
     continue;
   }
 

@@ -25,6 +25,8 @@ export interface DesignChinaBenchmark {
 
 export interface DesignCnGoldEtf {
   availability: DesignAvailability;
+  daily_shares_availability: DesignAvailability;
+  foundation_availability: DesignAvailability;
   etf_code: "518880";
   market_close: number | null;
   market_close_date: string | null;
@@ -131,6 +133,9 @@ export function buildDesignData(d: PageData): DesignData {
   const tracking = d.cnGoldEtfTracking;
   const trackingWindows = windowSet(tracking?.windows.map(sanitizeTrackingWindow));
   const sameDate = foundation?.alignmentStatus === "same_date";
+  const navSeries = d.series.cn_gold_etf_nav;
+  const latestNav = navSeries?.observations.at(-1) ?? null;
+  const dailySharesAvailable = finiteOrNull(d.china.etf.sharesValue ?? foundation?.sharesHundredMillion) !== null;
 
   return {
     manifestGeneratedAt: d.manifestGeneratedAt,
@@ -152,19 +157,21 @@ export function buildDesignData(d: PageData): DesignData {
     invest: {
       chinaGoldEtf: {
         availability: foundation || tracking || d.china.etf.price !== null ? "available" : "unavailable",
+        daily_shares_availability: dailySharesAvailable ? "available" : "unavailable",
+        foundation_availability: foundation ? "available" : "unavailable",
         etf_code: "518880",
         market_close: finiteOrNull(d.china.etf.price),
         market_close_date: d.china.etf.date,
         daily_return_pct: finiteOrNull(d.china.etf.dailyChangePct),
-        official_nav: finiteOrNull(foundation?.nav),
-        nav_date: foundation?.navDate ?? null,
+        official_nav: finiteOrNull(latestNav?.value ?? foundation?.nav),
+        nav_date: latestNav?.observation_date ?? foundation?.navDate ?? null,
         premium_discount_pct: sameDate ? finiteOrNull(foundation?.premiumDiscountPct) : null,
         premium_discount_abs: null,
         alignment_status: foundation?.alignmentStatus ?? null,
         formal_premium_available: sameDate && finiteOrNull(foundation?.premiumDiscountPct) !== null,
-        total_shares: finiteOrNull(foundation?.sharesHundredMillion),
+        total_shares: finiteOrNull(d.china.etf.sharesValue ?? foundation?.sharesHundredMillion),
         shares_unit: "hundred_million_shares",
-        shares_date: foundation?.sharesHundredMillion != null ? foundation.date : null,
+        shares_date: d.china.etf.sharesDate ?? (foundation?.sharesHundredMillion != null ? foundation.date : null),
         shares_change: finiteOrNull(d.china.etf.sharesNetFlow),
         shares_change_pct: finiteOrNull(d.china.etf.sharesChangePct),
         shares_change_windows_pct: {

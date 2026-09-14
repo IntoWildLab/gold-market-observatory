@@ -254,6 +254,8 @@ function ChinaGoldAttributionCard({ data: d }: { data: DesignData }) {
 
 function CnEtfInvestorCard({ data: d }: { data: DesignData }) {
   const etf = d.invest.chinaGoldEtf;
+  const sharesUnavailable = etf.daily_shares_availability === "unavailable";
+  const foundationUnavailable = etf.foundation_availability === "unavailable";
   const tracking20 = etf.tracking.windows["20D"];
   const tracking5 = etf.tracking.windows["5D"];
   const tracking60 = etf.tracking.windows["60D"];
@@ -263,20 +265,20 @@ function CnEtfInvestorCard({ data: d }: { data: DesignData }) {
       <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2"><span className="font-mono text-3xl font-bold" style={{ color: T.gold }}>{fmt(etf.market_close, 3)}</span><span className="text-[13px] text-[#7d766a]">元/份</span><span className="ml-auto font-mono text-lg font-bold" style={{ color: upDown(etf.daily_return_pct) }}>{pct(etf.daily_return_pct)}</span></div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
         <InvestorMetric label="官方 NAV" value={etf.official_nav === null ? "—" : `${fmt(etf.official_nav, 4)} 元`} note={etf.nav_date ?? "暂无日期"} />
-        <InvestorMetric label="正式同日折溢价" value={etf.formal_premium_available ? pct(etf.premium_discount_pct) : "暂无正式值"} note={premiumExplanation(etf.premium_discount_pct, etf.formal_premium_available, etf.alignment_status)} valueColor={etf.formal_premium_available ? upDown(etf.premium_discount_pct) : T.faint} />
-        <InvestorMetric label="20D 份额变化" value={pct(etf.shares_change_windows_pct["20D"])} valueColor={upDown(etf.shares_change_windows_pct["20D"])} />
+        <InvestorMetric label="正式同日折溢价" value={foundationUnavailable ? "Unavailable" : etf.formal_premium_available ? pct(etf.premium_discount_pct) : "暂无正式值"} note={foundationUnavailable ? "Daily ETF shares unavailable" : premiumExplanation(etf.premium_discount_pct, etf.formal_premium_available, etf.alignment_status)} valueColor={etf.formal_premium_available ? upDown(etf.premium_discount_pct) : T.faint} />
+        <InvestorMetric label="20D 份额变化" value={foundationUnavailable ? "Unavailable" : pct(etf.shares_change_windows_pct["20D"])} valueColor={foundationUnavailable ? T.faint : upDown(etf.shares_change_windows_pct["20D"])} />
         <InvestorMetric label="20D 跟踪偏离" value={pp(tracking20?.tracking_difference_pp)} note={trackingExplanation(tracking20?.tracking_difference_pp)} valueColor={upDown(tracking20?.tracking_difference_pp)} />
       </div>
       <ResponsiveDisclosure label="查看规模、份额与跟踪偏离详情">
         <div className="grid grid-cols-2 gap-2 text-[12px]">
-          <InvestorMetric label="Estimated AUM" value={`${compactCny(etf.estimated_aum_cny)} 元`} />
-          <InvestorMetric label="日度总份额" value={`${fmt(etf.total_shares)} 亿份`} note={etf.shares_date ?? "—"} />
-          <InvestorMetric label="5D / 60D份额" value={`${pct(etf.shares_change_windows_pct["5D"])} / ${pct(etf.shares_change_windows_pct["60D"])}`} />
+          <InvestorMetric label="Estimated AUM" value={foundationUnavailable ? "Unavailable" : `${compactCny(etf.estimated_aum_cny)} 元`} />
+          <InvestorMetric label="日度总份额" value={sharesUnavailable ? "Unavailable" : `${fmt(etf.total_shares)} 亿份`} note={sharesUnavailable ? "Daily ETF shares unavailable" : etf.shares_date ?? "暂无日期"} />
+          <InvestorMetric label="5D / 60D份额" value={foundationUnavailable ? "Unavailable" : `${pct(etf.shares_change_windows_pct["5D"])} / ${pct(etf.shares_change_windows_pct["60D"])}`} />
           <InvestorMetric label="60D 跟踪偏离" value={pp(tracking60?.tracking_difference_pp)} />
           <InvestorMetric label="5D 跟踪偏离" value={pp(tracking5?.tracking_difference_pp)} />
-          <InvestorMetric label="MarketEffect" value={`${compactCny(etf.estimated_market_effect_cny)} 元`} />
-          <InvestorMetric label="ShareEffect" value={`${compactCny(etf.estimated_share_flow_cny)} 元`} />
-          <InvestorMetric label="分解闭合残差" value={`${fmt(etf.decomposition_closure_residual_cny, 2)} 元`} />
+          <InvestorMetric label="MarketEffect" value={foundationUnavailable ? "Unavailable" : `${compactCny(etf.estimated_market_effect_cny)} 元`} />
+          <InvestorMetric label="ShareEffect" value={foundationUnavailable ? "Unavailable" : `${compactCny(etf.estimated_share_flow_cny)} 元`} />
+          <InvestorMetric label="分解闭合残差" value={foundationUnavailable ? "Unavailable" : `${fmt(etf.decomposition_closure_residual_cny, 2)} 元`} />
         </div>
         <p className="mt-2 text-[12px] leading-relaxed text-[#a8a193]">跟踪偏离使用官方 NAV 收益减去 Au99.99 收益；Au99.99 为中国黄金现货代理基准（benchmark_is_proxy = true）。所有数值直接来自 DesignData，不在组件内重算。</p>
       </ResponsiveDisclosure>

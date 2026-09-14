@@ -303,8 +303,15 @@ jobs:
           EVENT_RISK_EVENT_COUNT: ${{ steps.event-risk-summary.outputs.event_count }}
           EVENT_RISK_RENDER_STATUS: ${{ steps.event-risk-render.outputs.status }}
           EVENT_RISK_RENDER_EXPECTATION: ${{ steps.event-risk-render.outputs.expected_kind }}
-          SERIES_COUNT: ${{ steps.dataset.outputs.series_count }}
-          DERIVED_COUNT: ${{ steps.dataset.outputs.derived_count }}
+          CORE_SERIES_COUNT: ${{ steps.dataset.outputs.core_series_count }}
+          CORE_SERIES_EXPECTED: ${{ steps.dataset.outputs.core_series_expected }}
+          AUX_SERIES_COUNT: ${{ steps.dataset.outputs.aux_series_count }}
+          AUX_SERIES_EXPECTED: ${{ steps.dataset.outputs.aux_series_expected }}
+          CORE_DERIVED_COUNT: ${{ steps.dataset.outputs.core_derived_count }}
+          CORE_DERIVED_EXPECTED: ${{ steps.dataset.outputs.core_derived_expected }}
+          AUX_DERIVED_COUNT: ${{ steps.dataset.outputs.aux_derived_count }}
+          AUX_DERIVED_EXPECTED: ${{ steps.dataset.outputs.aux_derived_expected }}
+          DATASET_STATUS: ${{ steps.dataset.outputs.dataset_status }}
           QUALITY_STATUS: ${{ steps.quality.outputs.status }}
           QUALITY_OUTCOME: ${{ steps.quality.outcome }}
           TEST_STATUS: ${{ steps.tests.outcome }}
@@ -318,18 +325,29 @@ jobs:
           STAGED_URL: ${{ steps.deploy.outputs.url }}
           SMOKE_STATUS: ${{ steps.smoke.outcome }}
         run: |
+          if [ "${AUX_SERIES_COUNT:-0}" = "${AUX_SERIES_EXPECTED:-1}" ]; then shares_status="available"; else shares_status="unavailable"; fi
+          if [ "${AUX_DERIVED_COUNT:-0}" = "${AUX_DERIVED_EXPECTED:-1}" ]; then foundation_status="available"; else foundation_status="unavailable"; fi
           {
             echo "# Ephemeral Staged Production Validation"
             echo
             echo "- Data fetch: **${FETCH_STATUS:-Not run}**"
             echo "- Event Risk fetch: **${EVENT_RISK_FETCH_STATUS:-Not run}** (exit ${EVENT_RISK_FETCH_EXIT_CODE:-not available})"
             echo "- Event Risk snapshot: **${EVENT_RISK_SNAPSHOT:-not available}**"
-            echo "- Event Risk availability: **${EVENT_RISK_AVAILABILITY:-not available}**"
+            echo "- Event Risk availability: **${EVENT_RISK_AVAILABILITY:-unavailable}**"
             echo "- Event Risk BLS: **${EVENT_RISK_BLS_STATUS:-not available}** / **${EVENT_RISK_BLS_MODE:-not available}**"
             echo "- Event Risk event count: **${EVENT_RISK_EVENT_COUNT:-0}**"
             echo "- Event Risk staged render: **${EVENT_RISK_RENDER_STATUS:-Not run}** (${EVENT_RISK_RENDER_EXPECTATION:-not available})"
-            echo "- Series count: **${SERIES_COUNT:-Not available}**"
-            echo "- Derived count: **${DERIVED_COUNT:-Not available}**"
+            echo
+            echo "## Daily Core"
+            echo "- Core series: **${CORE_SERIES_COUNT:-0}/${CORE_SERIES_EXPECTED:-16}**"
+            echo "- Core derived: **${CORE_DERIVED_COUNT:-0}/${CORE_DERIVED_EXPECTED:-4}**"
+            echo "- Core status: **${{ steps.dataset.outcome == 'success' && 'PASS' || 'FAIL' }}**"
+            echo
+            echo "## Auxiliary Capabilities"
+            echo "- 518880 daily shares: **${shares_status}**"
+            echo "- CN ETF foundation: **${foundation_status}**"
+            echo "- Event Risk: **${EVENT_RISK_AVAILABILITY:-unavailable}**"
+            echo "- Dataset status: **${DATASET_STATUS:-Not run}**"
             echo "- Quality: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
             echo "- Tests: **${TEST_STATUS:-Not run}**"
             echo "- Typecheck: **${TYPECHECK_STATUS:-Not run}**"

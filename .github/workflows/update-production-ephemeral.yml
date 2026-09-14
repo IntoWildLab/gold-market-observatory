@@ -560,8 +560,16 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           FETCH_STATUS: ${{ steps.fetch.outcome }}
-          SERIES_COUNT: ${{ steps.dataset.outputs.series_count }}
-          DERIVED_COUNT: ${{ steps.dataset.outputs.derived_count }}
+          CORE_SERIES_COUNT: ${{ steps.dataset.outputs.core_series_count }}
+          CORE_SERIES_EXPECTED: ${{ steps.dataset.outputs.core_series_expected }}
+          AUX_SERIES_COUNT: ${{ steps.dataset.outputs.aux_series_count }}
+          AUX_SERIES_EXPECTED: ${{ steps.dataset.outputs.aux_series_expected }}
+          CORE_DERIVED_COUNT: ${{ steps.dataset.outputs.core_derived_count }}
+          CORE_DERIVED_EXPECTED: ${{ steps.dataset.outputs.core_derived_expected }}
+          AUX_DERIVED_COUNT: ${{ steps.dataset.outputs.aux_derived_count }}
+          AUX_DERIVED_EXPECTED: ${{ steps.dataset.outputs.aux_derived_expected }}
+          DATASET_STATUS: ${{ steps.dataset.outputs.dataset_status }}
+          EVENT_RISK_AVAILABILITY: ${{ steps.event-risk-summary.outputs.availability }}
           LATEST_DATE_MIN: ${{ steps.dataset.outputs.latest_date_min }}
           LATEST_DATE_MAX: ${{ steps.dataset.outputs.latest_date_max }}
           QUALITY_STATUS: ${{ steps.quality.outputs.status }}
@@ -592,6 +600,8 @@ jobs:
           ROLLBACK_REQUIRED: ${{ steps.rollback-required.outputs.required }}
           ROLLBACK_STATUS: ${{ steps.rollback.outputs.status }}
         run: |
+          if [ "${AUX_SERIES_COUNT:-0}" = "${AUX_SERIES_EXPECTED:-1}" ]; then shares_status="available"; else shares_status="unavailable"; fi
+          if [ "${AUX_DERIVED_COUNT:-0}" = "${AUX_DERIVED_EXPECTED:-1}" ]; then foundation_status="available"; else foundation_status="unavailable"; fi
           if [ "$EVENT_NAME" = "schedule" ]; then
             trigger="Scheduled"
           else
@@ -619,8 +629,17 @@ jobs:
             echo
             echo "- Trigger: **${trigger}**"
             echo "- Data fetch: **${FETCH_STATUS:-Not run}**"
-            echo "- Series count: **${SERIES_COUNT:-0}/17**"
-            echo "- Derived count: **${DERIVED_COUNT:-0}/5**"
+            echo
+            echo "## Daily Core"
+            echo "- Core series: **${CORE_SERIES_COUNT:-0}/${CORE_SERIES_EXPECTED:-16}**"
+            echo "- Core derived: **${CORE_DERIVED_COUNT:-0}/${CORE_DERIVED_EXPECTED:-4}**"
+            echo "- Core status: **${{ steps.dataset.outcome == 'success' && 'PASS' || 'FAIL' }}**"
+            echo
+            echo "## Auxiliary Capabilities"
+            echo "- 518880 daily shares: **${shares_status}**"
+            echo "- CN ETF foundation: **${foundation_status}**"
+            echo "- Event Risk: **${EVENT_RISK_AVAILABILITY:-unavailable}**"
+            echo "- Dataset status: **${DATASET_STATUS:-Not run}**"
             echo "- Latest observation range: **${LATEST_DATE_MIN:-Not available} to ${LATEST_DATE_MAX:-Not available}**"
             echo "- Quality: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
             echo "- Tests: **${TEST_STATUS:-Not run}**"

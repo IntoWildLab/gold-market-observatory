@@ -12,7 +12,7 @@
  */
 
 import "dotenv/config";
-import { mkdir, writeFile, readFile, readdir } from "node:fs/promises";
+import { mkdir, writeFile, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import {
   fetchFredSeries,
@@ -725,10 +725,13 @@ async function fetchChinaEtfBlock(foundationOnly = false): Promise<void> {
       all_real: true,
     });
   } catch (e) {
-    console.warn(`[china] 518880 日度份额抓取失败, 保留旧快照: ${(e as Error).message}`);
+    // A failed current acquisition must not promote the tracked stale auxiliary snapshot.
+    await rm(path.join(SERIES_DIR, "cn_gold_etf_shares_daily.json"), { force: true });
+    console.warn(`[auxiliary][china-etf-shares] unavailable: ${(e as Error).message}`);
   }
 
   // 6) 派生基础层：严格同日折溢价、估算规模、份额变化与对称分解。
+  await rm(path.join(DERIVED_DIR, "cn-gold-etf-foundation.json"), { force: true });
   try {
     const [priceFile, navFile, sharesFile] = await Promise.all([
       readExisting("cn_gold_etf_price"),
@@ -758,7 +761,7 @@ async function fetchChinaEtfBlock(foundationOnly = false): Promise<void> {
     }, null, 2), "utf8");
     console.log(`[derived] cn-gold-etf-foundation: ${rows.length} 条`);
   } catch (e) {
-    console.warn(`[derived] 518880 基础层生成失败, 保留旧快照: ${(e as Error).message}`);
+    console.warn(`[auxiliary][cn-gold-etf-foundation] unavailable: ${(e as Error).message}`);
   }
 }
 

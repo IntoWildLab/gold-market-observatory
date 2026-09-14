@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
+const path = require("node:path");
 const { buildDesignData } = require("../.tmp-pipeline/lib/design-data-builder.js");
 
 const WINDOWS = ["5D", "20D", "60D"];
@@ -200,6 +202,38 @@ test("整个派生数据缺失时提供明确 availability 与固定窗口", () 
   assert.deepEqual(data.china.goldAttribution.windows, { "5D": null, "20D": null, "60D": null });
   assert.equal(data.invest.chinaGoldEtf.availability, "unavailable");
   assert.equal(data.invest.chinaGoldEtf.tracking.availability, "unavailable");
+});
+
+test("daily shares 与 foundation 缺失时保留价格、官方 NAV 和 tracking", () => {
+  const input = fixture();
+  input.cnGoldEtfFoundation = null;
+  input.china.etf.sharesValue = null;
+  input.china.etf.sharesDate = null;
+  input.china.etf.sharesNetFlow = null;
+  input.china.etf.sharesChangePct = null;
+  input.series.cn_gold_etf_nav = {
+    meta: { name: "518880 official NAV", source: { name: "Huaan" }, frequency: "daily" },
+    observations: [{ observation_date: "2026-02-01", value: 10.01 }],
+    last_observation_date: "2026-02-01",
+    last_fetched_at: "now",
+  };
+  const etf = buildDesignData(input).invest.chinaGoldEtf;
+  assert.equal(etf.availability, "available");
+  assert.equal(etf.daily_shares_availability, "unavailable");
+  assert.equal(etf.foundation_availability, "unavailable");
+  assert.equal(etf.market_close, 10.2);
+  assert.equal(etf.official_nav, 10.01);
+  assert.equal(etf.tracking.availability, "available");
+  assert.equal(etf.total_shares, null);
+  assert.equal(etf.estimated_aum_cny, null);
+});
+
+test("Refined V4 对 shares/foundation 缺失使用明确 Unavailable 文案", () => {
+  const source = readFileSync(path.resolve(__dirname, "../components/design/RefinedV4Preview.tsx"), "utf8");
+  assert.match(source, /daily_shares_availability/);
+  assert.match(source, /foundation_availability/);
+  assert.match(source, /Daily ETF shares unavailable/);
+  assert.match(source, /value=\{foundationUnavailable \? "Unavailable"/);
 });
 
 test("NaN 与 Infinity 被转为 null，不进入 V4 数据契约", () => {
