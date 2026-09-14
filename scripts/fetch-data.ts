@@ -37,7 +37,7 @@ import {
   fetchCnEtfShares,
   fetchCnEtfOfficialNav,
   fetchCnEtfPcfNavOn,
-  fetchCnEtfDailySharesLatest,
+  fetchCnEtfDailySharesLatestWithFallback,
   fetchCnEtfDailySharesOn,
   CN_ETF,
   type OfficialNavPoint,
@@ -674,8 +674,12 @@ async function fetchChinaEtfBlock(foundationOnly = false): Promise<void> {
   // 5) 上交所日度总份额；原始单位万份，统一换算为亿份。
   try {
     const existing = await readExisting("cn_gold_etf_shares_daily");
+    const priceSeries = await readExisting("cn_gold_etf_price");
+    const latestPriceTradeDate = priceSeries?.last_observation_date;
+    if (!latestPriceTradeDate) throw new Error("518880 最新收盘价交易日期缺失，无法执行官方 ETF规模日期回退");
     const points = new Map<string, DailySharesPoint>();
-    for (const point of await fetchCnEtfDailySharesLatest()) points.set(point.date, point);
+    const latestShares = await fetchCnEtfDailySharesLatestWithFallback(latestPriceTradeDate);
+    for (const point of latestShares.points) points.set(point.date, point);
     if (!existing?.observations.length) {
       const start = new Date(NOW);
       start.setUTCDate(start.getUTCDate() - 119);

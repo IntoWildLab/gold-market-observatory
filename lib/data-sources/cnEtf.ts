@@ -162,8 +162,12 @@ const HUAAN_PRODUCT_URL = "https://huaan.com.cn/funds/518880/index.shtml";
 const HUAAN_PCF_URL = "https://huaan.com.cn/etf/518880/sgshqd.jsp";
 const SSE_QUERY_URL = "https://query.sse.com.cn/commonQuery.do";
 const SSE_SHARES_ENDPOINT_LABEL = "query.sse.com.cn/commonQuery.do";
+const SSE_ETF_SCALE_PAGE_URL = "https://www.sse.com.cn/market/funddata/volumn/etfvolumn/";
+const SSE_PRIMARY_SHARES_SQL_ID = "COMMON_SSE_ZQPZ_ETFZL_ETFJBXX_JJGM_MOREN_L";
+const SSE_OFFICIAL_SCALE_SQL_ID = "COMMON_SSE_ZQPZ_ETFZL_XXPL_ETFGM_SEARCH_L";
 const SSE_SHARES_ATTEMPTS = 3;
 const SSE_SHARES_BACKOFF_MS = [1000, 3000];
+const SSE_TRANSPARENT_USER_AGENT = "Gold-Market-Observatory/1.0 (+public SSE ETF data fetch)";
 
 function plainText(html: string): string {
   return html.replace(/&nbsp;/gi, " ").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -226,7 +230,7 @@ export function parseSseDailyShares(payload: unknown, expectedCode = CN_ETF.code
     const date = String(row.STAT_DATE ?? "");
     const code = String(row.SEC_CODE ?? "");
     const rawValue = Number(row.TOT_VOL);
-    if (code !== expectedCode || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(rawValue) || rawValue <= 0) {
+    if (code !== expectedCode || !isRealIsoDate(date) || !Number.isFinite(rawValue) || rawValue <= 0) {
       throw new Error("上交所份额行的代码、日期或数值无效");
     }
     if (seen.has(date)) throw new Error(`上交所份额日期重复: ${date}`);
@@ -244,8 +248,20 @@ export interface SseSharesFetchDependencies {
   warn?: (message: string) => void;
 }
 
+function isRealIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 export interface SseSharesRetryPolicy {
   retryHttp403?: boolean;
+}
+
+export interface DailySharesLatestResult {
+  points: DailySharesPoint[];
+  transport: "primary" | "official_scale_fallback";
+  primaryError?: string;
 }
 
 function networkErrorCode(error: unknown): string | null {
@@ -292,7 +308,11 @@ export async function fetchSseShares(
       payload = await getJson(`${SSE_QUERY_URL}?${query}`, {
         timeoutMs: 20000,
         retries: 0,
-        headers: { referer: "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880" },
+        headers: {
+          accept: "application/json",
+          referer: "https://www.sse.com.cn/assortment/fund/list/etfinfo/basic/index.shtml?FUNDID=518880",
+          "user-agent": SSE_TRANSPARENT_USER_AGENT,
+        },
       });
       break;
     } catch (error) {
@@ -316,11 +336,99 @@ export async function fetchSseShares(
 
 export function fetchCnEtfDailySharesLatest(dependencies: SseSharesFetchDependencies = {}): Promise<DailySharesPoint[]> {
   return fetchSseShares({
-    sqlId: "COMMON_SSE_ZQPZ_ETFZL_ETFJBXX_JJGM_MOREN_L",
+    sqlId: SSE_PRIMARY_SHARES_SQL_ID,
     SEC_CODE: CN_ETF.code,
     "pageHelp.pageSize": "400",
     "pageHelp.pageNo": "1",
   }, dependencies, { retryHttp403: true });
+}
+
+function dateCandidatesWithinFiveCalendarDays(latestTradeDate: string): string[] {
+  if (!isRealIsoDate(latestTradeDate)) throw new Error(`518880 最新收盘价交易日期无效: ${latestTradeDate}`);
+  const start = new Date(`${latestTradeDate}T00:00:00.000Z`);
+  const dates: string[] = [];
+  for (let offset = 0; offset < 5; offset++) {
+    const candidate = new Date(start);
+    candidate.setUTCDate(start.getUTCDate() - offset);
+    const weekday = candidate.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) dates.push(candidate.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+function matchingSseSharesPayload(payload: unknown, expectedCode = CN_ETF.code): { result: Array<Record<string, unknown>> } {
+  const rows = (payload as { result?: Array<Record<string, unknown>> })?.result;
+  if (!Array.isArray(rows)) throw new Error("上交所份额响应缺少 result");
+  if (rows.length === 0) return { result: [] };
+  const matching = rows.filter((row) => String(row.SEC_CODE ?? "") === expectedCode);
+  if (matching.length === 0) throw new Error(`上交所 ETF规模响应缺少证券代码 ${expectedCode}`);
+  return { result: matching };
+}
+
+/** 当前 SSE “ETF规模”页面使用的同口径、按日期查询。每个候选日期只请求一次。 */
+export async function fetchSseSharesOfficialFallback(
+  latestTradeDate: string,
+  dependencies: SseSharesFetchDependencies = {},
+): Promise<DailySharesPoint[]> {
+  const getJson = dependencies.getJson ?? httpGetJson;
+  const warn = dependencies.warn ?? console.warn;
+  for (const date of dateCandidatesWithinFiveCalendarDays(latestTradeDate)) {
+    let payload: unknown;
+    try {
+      const query = new URLSearchParams({
+        sqlId: SSE_OFFICIAL_SCALE_SQL_ID,
+        SEC_CODE: CN_ETF.code,
+        STAT_DATE: date,
+        "pageHelp.pageSize": "1000",
+        "pageHelp.pageNo": "1",
+      });
+      payload = await getJson(`${SSE_QUERY_URL}?${query}`, {
+        timeoutMs: 20000,
+        retries: 0,
+        headers: {
+          accept: "application/json",
+          referer: SSE_ETF_SCALE_PAGE_URL,
+          "user-agent": SSE_TRANSPARENT_USER_AGENT,
+        },
+      });
+    } catch (error) {
+      warn(`[SSE][518880 shares] official scale fallback failed: ${describeSseSharesError(error)} at ${SSE_SHARES_ENDPOINT_LABEL}`);
+      throw error;
+    }
+    const points = parseSseDailyShares(matchingSseSharesPayload(payload));
+    if (points.length === 0) continue;
+    if (points.some((point) => point.date !== date)) {
+      throw new Error(`上交所 ETF规模响应日期与查询日期不一致: ${date}`);
+    }
+    return points;
+  }
+  throw new Error(`上交所 ETF规模在 ${latestTradeDate} 起 5 个日历日内没有 518880 日度总份额`);
+}
+
+export function validateSseSharesConsistency(primary: DailySharesPoint[], fallback: DailySharesPoint[]): void {
+  const fallbackByDate = new Map(fallback.map((point) => [point.date, point.rawValue]));
+  for (const point of primary) {
+    const fallbackValue = fallbackByDate.get(point.date);
+    if (fallbackValue !== undefined && fallbackValue !== point.rawValue) {
+      throw new Error(`上交所 518880 同日总份额不一致: ${point.date}`);
+    }
+  }
+}
+
+export async function fetchCnEtfDailySharesLatestWithFallback(
+  latestTradeDate: string,
+  dependencies: SseSharesFetchDependencies = {},
+): Promise<DailySharesLatestResult> {
+  try {
+    return { points: await fetchCnEtfDailySharesLatest(dependencies), transport: "primary" };
+  } catch (error) {
+    const primaryError = describeSseSharesError(error);
+    const warn = dependencies.warn ?? console.warn;
+    warn(`[SSE][518880 shares] primary exhausted: ${primaryError} at ${SSE_SHARES_ENDPOINT_LABEL}`);
+    const points = await fetchSseSharesOfficialFallback(latestTradeDate, dependencies);
+    warn(`[SSE][518880 shares] official scale fallback succeeded: ${points.at(-1)?.date ?? latestTradeDate}`);
+    return { points, transport: "official_scale_fallback", primaryError };
+  }
 }
 
 export function fetchCnEtfDailySharesOn(date: string, dependencies: SseSharesFetchDependencies = {}): Promise<DailySharesPoint[]> {

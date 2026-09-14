@@ -6,7 +6,10 @@ const {
   parseSseDailyShares,
   fetchCnEtfOfficialNav,
   fetchCnEtfDailySharesLatest,
+  fetchCnEtfDailySharesLatestWithFallback,
   fetchCnEtfDailySharesOn,
+  fetchSseSharesOfficialFallback,
+  validateSseSharesConsistency,
   preserveProductNavFirstObserved,
 } = require("../.tmp-pipeline/lib/data-sources/cnEtf.js");
 const { HttpError } = require("../.tmp-pipeline/lib/data-sources/http.js");
@@ -65,6 +68,15 @@ function noWaitDependencies(getJson, warnings = []) {
   return { getJson, wait: async () => {}, warn: (message) => warnings.push(message) };
 }
 
+function failingPrimaryThenFallback(primaryError, fallbackPayload, urls = [], warnings = []) {
+  return noWaitDependencies(async (url) => {
+    urls.push(url);
+    const sqlId = new URL(url).searchParams.get("sqlId");
+    if (sqlId.includes("ETFJBXX")) throw primaryError();
+    return fallbackPayload;
+  }, warnings);
+}
+
 test("日度份额第一次请求成功且不重试", async () => {
   let calls = 0;
   const points = await fetchCnEtfDailySharesLatest(noWaitDependencies(async () => {
@@ -112,6 +124,136 @@ test("日度份额在 timeout、HTTP 429 和 5xx 后重试", async () => {
     assert.equal(calls, 2);
     assert.equal(points.length, 1);
   }
+});
+
+test("带回退的 latest 查询主源首试成功时不调用回退", async () => {
+  const urls = [];
+  const result = await fetchCnEtfDailySharesLatestWithFallback("2026-08-21", noWaitDependencies(async (url) => {
+    urls.push(url);
+    return validSseSharesPayload;
+  }));
+  assert.equal(result.transport, "primary");
+  assert.equal(urls.length, 1);
+  assert.match(urls[0], /ETFJBXX_JJGM_MOREN_L/);
+});
+
+test("带回退的 latest 查询主源瞬时失败后成功时不调用回退", async () => {
+  const urls = [];
+  let calls = 0;
+  const result = await fetchCnEtfDailySharesLatestWithFallback("2026-08-21", noWaitDependencies(async (url) => {
+    urls.push(url);
+    calls += 1;
+    if (calls === 1) throw new HttpError("HTTP 503", 503, url);
+    return validSseSharesPayload;
+  }));
+  assert.equal(result.transport, "primary");
+  assert.equal(urls.length, 2);
+  assert.ok(urls.every((url) => url.includes("ETFJBXX_JJGM_MOREN_L")));
+});
+
+for (const [name, errorFactory] of [
+  ["HTTP 403", () => new HttpError("HTTP 403", 403, "https://query.sse.com.cn/commonQuery.do")],
+  ["ETIMEDOUT", () => Object.assign(new TypeError("fetch failed"), { cause: { code: "ETIMEDOUT" } })],
+  ["HTTP 5xx", () => new HttpError("HTTP 503", 503, "https://query.sse.com.cn/commonQuery.do")],
+]) {
+  test(`主源 ${name} 三次耗尽后使用官方 ETF规模回退`, async () => {
+    const urls = [];
+    const warnings = [];
+    const result = await fetchCnEtfDailySharesLatestWithFallback(
+      "2026-08-21",
+      failingPrimaryThenFallback(errorFactory, validSseSharesPayload, urls, warnings),
+    );
+    assert.equal(result.transport, "official_scale_fallback");
+    assert.equal(urls.filter((url) => url.includes("ETFJBXX_JJGM_MOREN_L")).length, 3);
+    assert.equal(urls.filter((url) => url.includes("XXPL_ETFGM_SEARCH_L")).length, 1);
+    assert.match(warnings.at(-1), /official scale fallback succeeded: 2026-08-21/);
+  });
+}
+
+test("官方回退拒绝错误 SEC_CODE", async () => {
+  await assert.rejects(
+    fetchCnEtfDailySharesLatestWithFallback("2026-08-21", failingPrimaryThenFallback(
+      () => new HttpError("HTTP 403", 403, "x"),
+      { result: [{ STAT_DATE: "2026-08-21", SEC_CODE: "000000", TOT_VOL: 1 }] },
+    )),
+    /缺少证券代码 518880/,
+  );
+});
+
+test("官方回退拒绝不真实的 STAT_DATE", async () => {
+  await assert.rejects(
+    fetchCnEtfDailySharesLatestWithFallback("2026-08-21", failingPrimaryThenFallback(
+      () => new HttpError("HTTP 403", 403, "x"),
+      { result: [{ STAT_DATE: "2026-02-30", SEC_CODE: "518880", TOT_VOL: 1 }] },
+    )),
+    /无效/,
+  );
+});
+
+test("官方回退拒绝无效 TOT_VOL", async () => {
+  await assert.rejects(
+    fetchCnEtfDailySharesLatestWithFallback("2026-08-21", failingPrimaryThenFallback(
+      () => new HttpError("HTTP 403", 403, "x"),
+      { result: [{ STAT_DATE: "2026-08-21", SEC_CODE: "518880", TOT_VOL: 0 }] },
+    )),
+    /无效/,
+  );
+});
+
+test("官方回退拒绝重复日期", async () => {
+  const row = { STAT_DATE: "2026-08-21", SEC_CODE: "518880", TOT_VOL: 1 };
+  await assert.rejects(
+    fetchCnEtfDailySharesLatestWithFallback("2026-08-21", failingPrimaryThenFallback(
+      () => new HttpError("HTTP 403", 403, "x"),
+      { result: [row, row] },
+    )),
+    /重复/,
+  );
+});
+
+test("主源与官方回退均失败时拒绝且不制造数据", async () => {
+  let generated;
+  let calls = 0;
+  await assert.rejects(async () => {
+    generated = await fetchCnEtfDailySharesLatestWithFallback("2026-08-21", noWaitDependencies(async (url) => {
+      calls += 1;
+      throw new HttpError("HTTP 503", 503, url);
+    }));
+  }, /HTTP 503/);
+  assert.equal(calls, 4);
+  assert.equal(generated, undefined);
+});
+
+test("主源与官方回退同日同值通过一致性检查", () => {
+  const primary = parseSseDailyShares(validSseSharesPayload);
+  const fallback = parseSseDailyShares({ result: [{ ...validSseSharesPayload.result[0], TOT_VOL: 1027234.08 }] });
+  assert.doesNotThrow(() => validateSseSharesConsistency(primary, fallback));
+  const inconsistent = parseSseDailyShares({ result: [{ ...validSseSharesPayload.result[0], TOT_VOL: 1027234.09 }] });
+  assert.throws(() => validateSseSharesConsistency(primary, inconsistent), /不一致/);
+});
+
+test("官方回退最多查看五个日历日、跳过周末并在首个结果停止", async () => {
+  const requestedDates = [];
+  const points = await fetchSseSharesOfficialFallback("2026-08-24", noWaitDependencies(async (url) => {
+    const date = new URL(url).searchParams.get("STAT_DATE");
+    requestedDates.push(date);
+    return date === "2026-08-21" ? validSseSharesPayload : { result: [] };
+  }));
+  assert.deepEqual(requestedDates, ["2026-08-24", "2026-08-21"]);
+  assert.equal(points[0].date, "2026-08-21");
+
+  const allEmptyDates = [];
+  await assert.rejects(fetchSseSharesOfficialFallback("2026-08-24", noWaitDependencies(async (url) => {
+    allEmptyDates.push(new URL(url).searchParams.get("STAT_DATE"));
+    return { result: [] };
+  })), /5 个日历日/);
+  assert.deepEqual(allEmptyDates, ["2026-08-24", "2026-08-21", "2026-08-20"]);
+});
+
+test("官方日度回退只接受 SSE TOT_VOL，不读取季度份额字段", async () => {
+  await assert.rejects(fetchSseSharesOfficialFallback("2026-08-21", noWaitDependencies(async () => ({
+    result: [{ STAT_DATE: "2026-08-21", SEC_CODE: "518880", SHARES: 117.8, NET_ASSETS: 100 }],
+  }))), /无效/);
 });
 
 test("日度份额 latest 查询第一次 HTTP 403 后重试成功", async () => {
