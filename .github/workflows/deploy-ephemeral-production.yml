@@ -312,6 +312,9 @@ jobs:
           AUX_DERIVED_COUNT: ${{ steps.dataset.outputs.aux_derived_count }}
           AUX_DERIVED_EXPECTED: ${{ steps.dataset.outputs.aux_derived_expected }}
           DATASET_STATUS: ${{ steps.dataset.outputs.dataset_status }}
+          QUARTERLY_SHARES_STATUS: ${{ steps.dataset.outputs.quarterly_shares_status }}
+          DAILY_SHARES_STATUS: ${{ steps.dataset.outputs.daily_shares_status }}
+          FOUNDATION_STATUS: ${{ steps.dataset.outputs.foundation_status }}
           QUALITY_STATUS: ${{ steps.quality.outputs.status }}
           QUALITY_OUTCOME: ${{ steps.quality.outcome }}
           TEST_STATUS: ${{ steps.tests.outcome }}
@@ -325,8 +328,6 @@ jobs:
           STAGED_URL: ${{ steps.deploy.outputs.url }}
           SMOKE_STATUS: ${{ steps.smoke.outcome }}
         run: |
-          if [ "${AUX_SERIES_COUNT:-0}" = "${AUX_SERIES_EXPECTED:-1}" ]; then shares_status="available"; else shares_status="unavailable"; fi
-          if [ "${AUX_DERIVED_COUNT:-0}" = "${AUX_DERIVED_EXPECTED:-1}" ]; then foundation_status="available"; else foundation_status="unavailable"; fi
           {
             echo "# Ephemeral Staged Production Validation"
             echo
@@ -339,13 +340,14 @@ jobs:
             echo "- Event Risk staged render: **${EVENT_RISK_RENDER_STATUS:-Not run}** (${EVENT_RISK_RENDER_EXPECTATION:-not available})"
             echo
             echo "## Daily Core"
-            echo "- Core series: **${CORE_SERIES_COUNT:-0}/${CORE_SERIES_EXPECTED:-16}**"
+            echo "- Core series: **${CORE_SERIES_COUNT:-0}/${CORE_SERIES_EXPECTED:-15}**"
             echo "- Core derived: **${CORE_DERIVED_COUNT:-0}/${CORE_DERIVED_EXPECTED:-4}**"
             echo "- Core status: **${{ steps.dataset.outcome == 'success' && 'PASS' || 'FAIL' }}**"
             echo
             echo "## Auxiliary Capabilities"
-            echo "- 518880 daily shares: **${shares_status}**"
-            echo "- CN ETF foundation: **${foundation_status}**"
+            echo "- 518880 quarterly shares: **${QUARTERLY_SHARES_STATUS:-unavailable}**"
+            echo "- 518880 daily shares: **${DAILY_SHARES_STATUS:-unavailable}**"
+            echo "- CN ETF foundation: **${FOUNDATION_STATUS:-unavailable}**"
             echo "- Event Risk: **${EVENT_RISK_AVAILABILITY:-unavailable}**"
             echo "- Dataset status: **${DATASET_STATUS:-Not run}**"
             echo "- Quality: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"

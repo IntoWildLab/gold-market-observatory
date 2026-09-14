@@ -21,9 +21,8 @@ const coreRequired = [
   "cb_gold_purchases",
   "china_gold_reserves",
   "china_gold_reserves_usd",
-  "cn_gold_etf_shares",
 ];
-const auxiliary = ["cn_gold_etf_shares_daily"];
+const auxiliary = ["cn_gold_etf_shares", "cn_gold_etf_shares_daily"];
 
 // Calendar-day tolerances intentionally include weekends, market holidays and
 // normal publication lag. Crossing warnDays is informative; maxDays is fatal.

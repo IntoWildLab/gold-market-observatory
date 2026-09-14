@@ -11,7 +11,6 @@ export const coreRequiredSeries = [
   "china_gold_reserves_usd",
   "cn_gold_etf_nav",
   "cn_gold_etf_price",
-  "cn_gold_etf_shares",
   "dxy_proxy",
   "gld_holdings",
   "gold_etf_flows",
@@ -23,7 +22,7 @@ export const coreRequiredSeries = [
   "usd_cny",
 ];
 
-export const auxiliarySeries = ["cn_gold_etf_shares_daily"];
+export const auxiliarySeries = ["cn_gold_etf_shares", "cn_gold_etf_shares_daily"];
 
 export const coreRequiredDerived = [
   "china-gold-attribution.json",
@@ -118,6 +117,38 @@ function validateDailyShares(data, now = new Date()) {
   }
 }
 
+function validateQuarterlyShares(data, now = new Date()) {
+  const id = "cn_gold_etf_shares";
+  if (data?.meta?.series !== id) throw new Error(`${id}: meta.series does not match filename`);
+  if (data?.meta?.unit !== "hundred_million_shares" || data?.meta?.frequency !== "quarterly") {
+    throw new Error(`${id}: unit or frequency does not match the contract`);
+  }
+  if (!Array.isArray(data?.observations) || data.observations.length === 0) throw new Error(`${id}: observations are empty`);
+  if (data.all_real !== true || data.observations.some((item) => item?.is_mock === true)) {
+    throw new Error(`${id}: mock or non-real observations are not allowed`);
+  }
+  const seen = new Set();
+  let previousDate = "";
+  for (const [index, item] of data.observations.entries()) {
+    if (item?.series !== id) throw new Error(`${id}: observation ${index} has the wrong series id`);
+    if (typeof item?.value !== "number" || !Number.isFinite(item.value) || item.value <= 0) {
+      throw new Error(`${id}: observation ${index} must be finite and positive`);
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(item?.observation_date ?? "")) throw new Error(`${id}: observation ${index} has an invalid date`);
+    const date = new Date(`${item.observation_date}T00:00:00Z`);
+    if (!Number.isFinite(date.getTime()) || date.getTime() > now.getTime() + 2 * 86_400_000) {
+      throw new Error(`${id}: observation ${index} has an invalid or future date`);
+    }
+    if (seen.has(item.observation_date)) throw new Error(`${id}: duplicate date ${item.observation_date}`);
+    if (item.observation_date < previousDate) throw new Error(`${id}: observations are not sorted by date`);
+    seen.add(item.observation_date);
+    previousDate = item.observation_date;
+  }
+  if (data.last_observation_date !== data.observations.at(-1).observation_date) {
+    throw new Error(`${id}: last_observation_date does not match the final observation`);
+  }
+}
+
 function validateFoundation(data) {
   const name = "cn-gold-etf-foundation.json";
   if (data?.etf_code !== "518880") throw new Error(`${name}: etf_code must be 518880`);
@@ -167,6 +198,9 @@ export async function validateData({ rootDir = root, emitOutputs = rootDir === r
     latestDates.push(data.last_observation_date);
   }
   const presentAuxSeries = auxiliarySeries.filter((id) => actualSeries.includes(id));
+  if (presentAuxSeries.includes("cn_gold_etf_shares")) {
+    validateQuarterlyShares(await readJson("data/series/cn_gold_etf_shares.json", rootDir), now);
+  }
   if (presentAuxSeries.includes("cn_gold_etf_shares_daily")) {
     validateDailyShares(await readJson("data/series/cn_gold_etf_shares_daily.json", rootDir), now);
   }
@@ -216,6 +250,10 @@ export async function validateData({ rootDir = root, emitOutputs = rootDir === r
       ...duplicateManifestIds.map((id) => `duplicate ${id}`),
     ].join(", ")}`);
   }
+  const sortedManifestIds = [...manifestIds].sort();
+  if (JSON.stringify(sortedManifestIds) !== JSON.stringify(actualSeries)) {
+    throw new Error("manifest.json must describe exactly the series files produced by this run");
+  }
 
   latestDates.sort();
   const auxSeriesCount = presentAuxSeries.length;
@@ -231,6 +269,9 @@ export async function validateData({ rootDir = root, emitOutputs = rootDir === r
     aux_derived_count: auxDerivedCount,
     aux_derived_expected: auxiliaryDerived.length,
     dataset_status: datasetStatus,
+    quarterly_shares_status: presentAuxSeries.includes("cn_gold_etf_shares") ? "available" : "unavailable",
+    daily_shares_status: presentAuxSeries.includes("cn_gold_etf_shares_daily") ? "available" : "unavailable",
+    foundation_status: presentAuxDerived.includes("cn-gold-etf-foundation.json") ? "available" : "unavailable",
     series_count: actualSeries.length,
     derived_count: actualDerived.length,
     latest_date_min: latestDates[0],

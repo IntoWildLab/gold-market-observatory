@@ -569,6 +569,9 @@ jobs:
           AUX_DERIVED_COUNT: ${{ steps.dataset.outputs.aux_derived_count }}
           AUX_DERIVED_EXPECTED: ${{ steps.dataset.outputs.aux_derived_expected }}
           DATASET_STATUS: ${{ steps.dataset.outputs.dataset_status }}
+          QUARTERLY_SHARES_STATUS: ${{ steps.dataset.outputs.quarterly_shares_status }}
+          DAILY_SHARES_STATUS: ${{ steps.dataset.outputs.daily_shares_status }}
+          FOUNDATION_STATUS: ${{ steps.dataset.outputs.foundation_status }}
           EVENT_RISK_AVAILABILITY: ${{ steps.event-risk-summary.outputs.availability }}
           LATEST_DATE_MIN: ${{ steps.dataset.outputs.latest_date_min }}
           LATEST_DATE_MAX: ${{ steps.dataset.outputs.latest_date_max }}
@@ -600,8 +603,6 @@ jobs:
           ROLLBACK_REQUIRED: ${{ steps.rollback-required.outputs.required }}
           ROLLBACK_STATUS: ${{ steps.rollback.outputs.status }}
         run: |
-          if [ "${AUX_SERIES_COUNT:-0}" = "${AUX_SERIES_EXPECTED:-1}" ]; then shares_status="available"; else shares_status="unavailable"; fi
-          if [ "${AUX_DERIVED_COUNT:-0}" = "${AUX_DERIVED_EXPECTED:-1}" ]; then foundation_status="available"; else foundation_status="unavailable"; fi
           if [ "$EVENT_NAME" = "schedule" ]; then
             trigger="Scheduled"
           else
@@ -631,13 +632,14 @@ jobs:
             echo "- Data fetch: **${FETCH_STATUS:-Not run}**"
             echo
             echo "## Daily Core"
-            echo "- Core series: **${CORE_SERIES_COUNT:-0}/${CORE_SERIES_EXPECTED:-16}**"
+            echo "- Core series: **${CORE_SERIES_COUNT:-0}/${CORE_SERIES_EXPECTED:-15}**"
             echo "- Core derived: **${CORE_DERIVED_COUNT:-0}/${CORE_DERIVED_EXPECTED:-4}**"
             echo "- Core status: **${{ steps.dataset.outcome == 'success' && 'PASS' || 'FAIL' }}**"
             echo
             echo "## Auxiliary Capabilities"
-            echo "- 518880 daily shares: **${shares_status}**"
-            echo "- CN ETF foundation: **${foundation_status}**"
+            echo "- 518880 quarterly shares: **${QUARTERLY_SHARES_STATUS:-unavailable}**"
+            echo "- 518880 daily shares: **${DAILY_SHARES_STATUS:-unavailable}**"
+            echo "- CN ETF foundation: **${FOUNDATION_STATUS:-unavailable}**"
             echo "- Event Risk: **${EVENT_RISK_AVAILABILITY:-unavailable}**"
             echo "- Dataset status: **${DATASET_STATUS:-Not run}**"
             echo "- Latest observation range: **${LATEST_DATE_MIN:-Not available} to ${LATEST_DATE_MAX:-Not available}**"

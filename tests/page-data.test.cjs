@@ -1,11 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { mkdtemp, mkdir, rm } = require("node:fs/promises");
+const { mkdtemp, mkdir, readFile, rm } = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const Module = require("node:module");
 
-test("buildPageData does not crash when daily shares and foundation are absent", async () => {
+test("buildPageData does not crash when quarterly shares, daily shares and foundation are absent", async () => {
   const repoRoot = path.resolve(__dirname, "..");
   const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "page-data-degraded-"));
   await mkdir(path.join(fixtureRoot, "data", "series"), { recursive: true });
@@ -23,6 +23,7 @@ test("buildPageData does not crash when daily shares and foundation are absent",
     const { buildPageData } = require(path.join(repoRoot, ".tmp-pipeline", "lib", "page-data.js"));
     const data = await buildPageData(new Date("2026-09-14T00:00:00Z"));
     assert.equal(data.series.cn_gold_etf_shares_daily, undefined);
+    assert.equal(data.charts.find((chart) => chart.seriesId === "cn_gold_etf_shares").points.length, 0);
     assert.equal(data.cnGoldEtfFoundation, null);
     assert.equal(data.china.etf.sharesValue, null);
     assert.equal(data.china.etf.price, null);
@@ -31,4 +32,10 @@ test("buildPageData does not crash when daily shares and foundation are absent",
     process.chdir(previousCwd);
     await rm(fixtureRoot, { recursive: true, force: true });
   }
+});
+
+test("quarterly shares chart renders an explicit unavailable state", async () => {
+  const source = await readFile(path.resolve(__dirname, "../app/page.tsx"), "utf8");
+  assert.match(source, /c\.seriesId === "cn_gold_etf_shares" && c\.points\.length === 0/);
+  assert.match(source, /Quarterly ETF shares unavailable/);
 });

@@ -299,6 +299,14 @@ export default async function HomePage() {
               china_gold_reserves: "#f87171",
               cn_gold_etf_shares: "#fbbf24",
             };
+            if (c.seriesId === "cn_gold_etf_shares" && c.points.length === 0) {
+              return (
+                <div key={c.seriesId} className="panel flex min-h-64 flex-col items-center justify-center p-6 text-center">
+                  <h3 className="text-sm font-semibold text-[#e6edf3]">{c.label}</h3>
+                  <p className="mt-2 text-sm text-[#8b949e]">Quarterly ETF shares unavailable</p>
+                </div>
+              );
+            }
             return (
               <SeriesChart
                 key={c.seriesId}

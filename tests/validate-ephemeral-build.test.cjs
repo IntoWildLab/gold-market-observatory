@@ -50,7 +50,7 @@ async function writeJson(file, value) {
   await writeFile(file, JSON.stringify(value));
 }
 
-async function createDatasetFixture({ auxiliarySeries = true, auxiliaryDerived = true } = {}) {
+async function createDatasetFixture({ quarterlySeries = true, dailySeries = true, auxiliaryDerived = true } = {}) {
   const rootDir = await mkdtemp(path.join(os.tmpdir(), "dataset-validator-"));
   const validator = await loadValidator();
   const observationDate = "2026-09-01";
@@ -61,7 +61,15 @@ async function createDatasetFixture({ auxiliarySeries = true, auxiliaryDerived =
       last_observation_date: observationDate,
     });
   }
-  if (auxiliarySeries) {
+  if (quarterlySeries) {
+    await writeJson(path.join(rootDir, "data", "series", "cn_gold_etf_shares.json"), {
+      meta: { series: "cn_gold_etf_shares", unit: "hundred_million_shares", frequency: "quarterly" },
+      observations: [{ series: "cn_gold_etf_shares", observation_date: observationDate, value: 12.3456 }],
+      last_observation_date: observationDate,
+      all_real: true,
+    });
+  }
+  if (dailySeries) {
     await writeJson(path.join(rootDir, "data", "series", "cn_gold_etf_shares_daily.json"), {
       meta: { series: "cn_gold_etf_shares_daily", unit: "hundred_million_shares", frequency: "daily" },
       observations: [{ series: "cn_gold_etf_shares_daily", observation_date: observationDate, value: 12.3456, security_code: "518880", raw_unit: "万份", raw_value: 123456 }],
@@ -79,7 +87,11 @@ async function createDatasetFixture({ auxiliarySeries = true, auxiliaryDerived =
       rows: [{ date: observationDate, price: 10, nav: 10, sharesHundredMillion: 12, premiumDiscountPct: 0, estimatedAumCny: 12000000000, marketEffectCny: null, shareEffectCny: null, aumChangeCny: null, decompositionResidualCny: null, alignmentStatus: "same_date" }],
     });
   }
-  const manifestIds = [...validator.coreRequiredSeries, ...(auxiliarySeries ? validator.auxiliarySeries : [])];
+  const manifestIds = [
+    ...validator.coreRequiredSeries,
+    ...(quarterlySeries ? ["cn_gold_etf_shares"] : []),
+    ...(dailySeries ? ["cn_gold_etf_shares_daily"] : []),
+  ];
   await writeJson(path.join(rootDir, "data", "manifest.json"), { series: manifestIds.map((series) => ({ series })) });
   await writeJson(path.join(rootDir, "data", "latest-spot.json"), { price_usd: 2500, as_of_date: observationDate });
   await writeJson(path.join(rootDir, "data", "latest-cn-etf.json"), { price: 10, quote_date: observationDate });
@@ -95,23 +107,41 @@ async function withDataset(options, callback) {
   }
 }
 
-test("accepts 16 core series and both auxiliary artifacts as complete", async () => {
+test("accepts 15 core series and all auxiliary artifacts as complete", async () => {
   await withDataset({}, async ({ rootDir, validator }) => {
     const result = await validator.validateData({ rootDir, emitOutputs: false, now: new Date("2026-09-14T00:00:00Z") });
     assert.equal(result.dataset_status, "complete");
-    assert.equal(result.core_series_count, 16);
-    assert.equal(result.aux_series_count, 1);
+    assert.equal(result.core_series_count, 15);
+    assert.equal(result.aux_series_count, 2);
     assert.equal(result.core_derived_count, 4);
     assert.equal(result.aux_derived_count, 1);
   });
 });
 
-test("accepts 16 core-only series and derived data as degraded", async () => {
-  await withDataset({ auxiliarySeries: false, auxiliaryDerived: false }, async ({ rootDir, validator }) => {
+test("accepts 15 core-only series and derived data as degraded", async () => {
+  await withDataset({ quarterlySeries: false, dailySeries: false, auxiliaryDerived: false }, async ({ rootDir, validator }) => {
     const result = await validator.validateData({ rootDir, emitOutputs: false });
     assert.equal(result.dataset_status, "degraded");
-    assert.equal(result.series_count, 16);
+    assert.equal(result.series_count, 15);
     assert.equal(result.derived_count, 4);
+  });
+});
+
+test("accepts daily shares when quarterly shares are absent as degraded", async () => {
+  await withDataset({ quarterlySeries: false }, async ({ rootDir, validator }) => {
+    const result = await validator.validateData({ rootDir, emitOutputs: false });
+    assert.equal(result.dataset_status, "degraded");
+    assert.equal(result.quarterly_shares_status, "unavailable");
+    assert.equal(result.daily_shares_status, "available");
+  });
+});
+
+test("accepts quarterly shares when daily shares are absent as degraded", async () => {
+  await withDataset({ dailySeries: false }, async ({ rootDir, validator }) => {
+    const result = await validator.validateData({ rootDir, emitOutputs: false });
+    assert.equal(result.dataset_status, "degraded");
+    assert.equal(result.quarterly_shares_status, "available");
+    assert.equal(result.daily_shares_status, "unavailable");
   });
 });
 
@@ -139,8 +169,18 @@ test("rejects malformed auxiliary daily shares", async () => {
   });
 });
 
+test("rejects malformed auxiliary quarterly shares", async () => {
+  await withDataset({}, async ({ rootDir, validator }) => {
+    const file = path.join(rootDir, "data", "series", "cn_gold_etf_shares.json");
+    const data = JSON.parse(await readFile(file, "utf8"));
+    data.observations[0].value = 0;
+    await writeJson(file, data);
+    await assert.rejects(validator.validateData({ rootDir, emitOutputs: false }), /must be finite and positive/);
+  });
+});
+
 test("rejects a manifest missing a core series", async () => {
-  await withDataset({ auxiliarySeries: false, auxiliaryDerived: false }, async ({ rootDir, validator }) => {
+  await withDataset({ quarterlySeries: false, dailySeries: false, auxiliaryDerived: false }, async ({ rootDir, validator }) => {
     const file = path.join(rootDir, "data", "manifest.json");
     const data = JSON.parse(await readFile(file, "utf8"));
     data.series = data.series.filter((item) => item.series !== "us10y_real");
@@ -194,7 +234,7 @@ test("accepts traces and Vercel output without absent auxiliary runtime files", 
     const { validateVercelOutput, auxiliaryRuntimeFiles } = await loadValidator();
     for (const file of auxiliaryRuntimeFiles) await rm(path.join(bundleDir, file));
     const result = await validateVercelOutput({ rootDir, secret, emitOutputs: false });
-    assert.equal(result.runtimeFileCount, 23);
+    assert.equal(result.runtimeFileCount, 22);
   });
 });
 
@@ -204,7 +244,7 @@ test("rejects Vercel output when present auxiliary runtime data is not bundled",
     for (const file of auxiliaryRuntimeFiles) await rm(path.join(bundleDir, file));
     await assert.rejects(
       validateVercelOutput({ rootDir, secret, emitOutputs: false }),
-      /cn_gold_etf_shares_daily\.json/,
+      /cn_gold_etf_shares\.json/,
     );
   });
 });
@@ -231,7 +271,7 @@ test("accepts Next.js traces when auxiliary source files are absent", async () =
   try {
     const { validateTrace } = await loadValidator();
     const result = await validateTrace({ rootDir: fixture.rootDir, secret, emitOutputs: false });
-    assert.equal(result.runtimeFileCount, 23);
+    assert.equal(result.runtimeFileCount, 22);
   } finally {
     await rm(fixture.rootDir, { recursive: true, force: true });
   }
@@ -241,7 +281,7 @@ test("rejects Next.js traces when present auxiliary files are not traced", async
   const fixture = await createTraceFixture({ auxiliarySource: true, traceAuxiliary: false });
   try {
     const { validateTrace } = await loadValidator();
-    await assert.rejects(validateTrace({ rootDir: fixture.rootDir, secret, emitOutputs: false }), /cn_gold_etf_shares_daily\.json/);
+    await assert.rejects(validateTrace({ rootDir: fixture.rootDir, secret, emitOutputs: false }), /cn_gold_etf_shares\.json/);
   } finally {
     await rm(fixture.rootDir, { recursive: true, force: true });
   }
