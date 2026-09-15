@@ -60,6 +60,7 @@ export interface DesignCnGoldEtf {
 export interface DesignData {
   manifestGeneratedAt: string | null;
   eventRisk: PageData["eventRisk"];
+  whatChanged: PageData["whatChanged"];
   gold: PageData["gold"];
   macros: PageData["macros"];
   china: PageData["china"] & {
@@ -140,6 +141,7 @@ export function buildDesignData(d: PageData): DesignData {
   return {
     manifestGeneratedAt: d.manifestGeneratedAt,
     eventRisk: d.eventRisk,
+    whatChanged: d.whatChanged,
     gold: d.gold,
     macros: d.macros,
     china: {

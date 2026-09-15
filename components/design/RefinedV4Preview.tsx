@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { DesignData } from "@/lib/design-data";
 import { V4AreaChart, V4Donut, V4ShareStack, V4Compare, type VPoint } from "./charts/V4Chart";
 import EventRiskStrip from "./EventRiskStrip";
+import WhatChangedCard from "./WhatChangedCard";
 
 /**
  * refined-v4 —— 浅暖白金融风(仅 /design/refined-v4 预览)
@@ -450,6 +451,8 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             <p className="mt-1.5 text-[14px] leading-relaxed text-[#575249]">{d.temperature.composite.summary}</p>
             <p className="mt-1 text-[13px] text-[#7d766a]">判定来自明确规则(近5日/近4周/季度)，详见下方驱动面板；黄金趋势为结果变量，单独展示。</p>
           </div>
+
+          <WhatChangedCard view={d.whatChanged} />
 
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-5 lg:gap-5">
             {/* Mobile 用 contents 让两列子组件统一参与 order；Desktop 恢复 60/40 两列 */}

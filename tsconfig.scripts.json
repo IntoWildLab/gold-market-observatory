@@ -12,6 +12,6 @@
     "paths": { "@/*": ["./*"] },
     "types": ["node"]
   },
-  "include": ["scripts/fetch-data.ts", "scripts/fetch-event-risk.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts", "components/design/EventRiskStrip.tsx"],
+  "include": ["scripts/fetch-data.ts", "scripts/fetch-event-risk.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts", "components/design/EventRiskStrip.tsx", "components/design/WhatChangedCard.tsx"],
   "exclude": ["node_modules", "app"]
 }

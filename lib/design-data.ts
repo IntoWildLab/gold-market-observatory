@@ -15,3 +15,4 @@ export type {
   DesignWindowSet,
 } from "./design-data-builder";
 export type { EventRiskView } from "./event-risk-view";
+export type { WhatChangedView } from "./what-changed";

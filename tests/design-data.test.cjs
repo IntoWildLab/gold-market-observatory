@@ -70,6 +70,14 @@ function fixture() {
       additionalEventCount: 0,
       provenance: { usesVerifiedCache: false, hasLiveSourceFailure: false },
     },
+    whatChanged: {
+      availability: "insufficient",
+      goldMove: { direction: "neutral", changePct: null, window: "近1日", endDate: null, description: "当前变化数据不足" },
+      environment: { label: "宏观证据暂不完整", tone: "neutral", explanation: "数据不足", stale: false },
+      evidence: [],
+      nextWatch: { kind: "observation", label: "下一步观察：数据是否恢复完整。" },
+      disclaimer: "基于已发生的数据变化归纳，不是价格预测或交易建议。",
+    },
     gold: {},
     macros: [],
     china: {
@@ -127,6 +135,7 @@ function fixture() {
 test("5D/20D/60D 人民币黄金归因进入 DesignData 并保留 Au99.99 角色", () => {
   const data = buildDesignData(fixture());
   assert.equal(data.eventRisk.availability, "unavailable");
+  assert.equal(data.whatChanged.availability, "insufficient");
   assert.deepEqual(Object.keys(data.china.goldAttribution.windows), WINDOWS);
   assert.equal(data.china.goldAttribution.windows["20D"].gold_contribution_pp, 12);
   assert.equal(data.china.goldAttribution.windows["20D"].deviation_contribution_pp, 14);

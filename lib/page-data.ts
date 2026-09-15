@@ -13,6 +13,7 @@ import type { ChinaGoldAttributionData, CnEtfTrackingData } from "./china-analys
 import type { CnEtfFoundationData } from "./cn-etf-foundation";
 import { loadEventRiskSnapshot } from "./event-risk-loader";
 import { buildEventRiskView, type EventRiskView } from "./event-risk-view";
+import { buildWhatChanged, type WhatChangedView } from "./what-changed";
 
 export interface MacroKpi {
   seriesId: SeriesId;
@@ -148,6 +149,7 @@ export interface PageData {
   missing: Array<{ seriesId: string; reason: string }>;
   manifestGeneratedAt: string | null;
   eventRisk: EventRiskView;
+  whatChanged: WhatChangedView;
 }
 
 export async function buildPageData(now: Date = new Date(), eventRiskSnapshotFile?: string): Promise<PageData> {
@@ -397,6 +399,7 @@ export async function buildPageData(now: Date = new Date(), eventRiskSnapshotFil
 
   const temperature = computeAssessment(series);
   const drivers = computeDrivers(series);
+  const whatChanged = buildWhatChanged(series, eventRisk, now);
 
   return {
     generatedAt: now.toISOString(),
@@ -421,5 +424,6 @@ export async function buildPageData(now: Date = new Date(), eventRiskSnapshotFil
     missing,
     manifestGeneratedAt: manifest?.generated_at ?? null,
     eventRisk,
+    whatChanged,
   };
 }
