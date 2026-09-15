@@ -63,7 +63,8 @@ function foundationRow(overrides = {}) {
 
 function fixture() {
   return {
-    manifestGeneratedAt: "now",
+    generatedAt: "2026-09-15T16:30:00.000Z",
+    manifestGeneratedAt: "2026-09-15T13:23:57.252Z",
     eventRisk: {
       availability: "unavailable",
       stale: false,
@@ -134,6 +135,9 @@ function fixture() {
 
 test("5D/20D/60D 人民币黄金归因进入 DesignData 并保留 Au99.99 角色", () => {
   const data = buildDesignData(fixture());
+  assert.equal(data.generatedAt, "2026-09-15T16:30:00.000Z");
+  assert.equal(data.currentDate, "2026-09-16");
+  assert.equal(data.manifestGeneratedAt, "2026-09-15T13:23:57.252Z");
   assert.equal(data.eventRisk.availability, "unavailable");
   assert.equal(data.whatChanged.availability, "insufficient");
   assert.deepEqual(Object.keys(data.china.goldAttribution.windows), WINDOWS);

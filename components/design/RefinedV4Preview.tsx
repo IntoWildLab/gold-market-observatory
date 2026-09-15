@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { DesignData } from "@/lib/design-data";
+import { formatShanghaiDateTime } from "@/lib/date-format";
 import { V4AreaChart, V4Donut, V4ShareStack, V4Compare, type VPoint } from "./charts/V4Chart";
 import EventRiskStrip from "./EventRiskStrip";
 import WhatChangedCard from "./WhatChangedCard";
@@ -342,14 +343,14 @@ function MobileDataProvenance({ data: d }: { data: DesignData }) {
         <InvestorMetric label="数据状态" value="正常" valueColor={T.fav} />
         <InvestorMetric label="数据系列" value={`${d.series.length} 条`} />
       </div>
-      <div className="mt-2 rounded-lg bg-[#faf8f2] px-3 py-2 text-[12px]"><span className="text-[#a8a193]">最近抓取</span><div className="mt-0.5 font-mono font-semibold text-[#575249]">{latest ? new Date(latest).toLocaleString("zh-CN", { hour12: false }) : "—"}</div></div>
+      <div className="mt-2 rounded-lg bg-[#faf8f2] px-3 py-2 text-[12px]"><span className="text-[#a8a193]">最近抓取</span><div className="mt-0.5 font-mono font-semibold text-[#575249]">{formatShanghaiDateTime(latest)}</div></div>
       <ResponsiveDisclosure label="查看全部数据源">
         <div className="space-y-2">
           {d.series.map((series) => (
             <div key={series.name} className="rounded-lg border p-3" style={{ borderColor: T.border }}>
               <div className="font-medium text-[#2b2a26]">{series.name}{series.isProxy ? "（代理）" : ""}</div>
               <div className="mt-1 text-[12px] leading-relaxed text-[#7d766a]">{series.source}</div>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[#a8a193]"><span>频率: {series.frequency}</span><span>最新: {series.lastObservationDate ?? "—"}</span><span className="col-span-2">抓取: {series.lastFetchedAt ? new Date(series.lastFetchedAt).toLocaleString("zh-CN", { hour12: false }) : "—"}</span>{series.frequency === "quarterly" && <span className="col-span-2">低频数据，非日度</span>}</div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[#a8a193]"><span>频率: {series.frequency}</span><span>最新: {series.lastObservationDate ?? "—"}</span><span className="col-span-2">抓取: {formatShanghaiDateTime(series.lastFetchedAt)}</span>{series.frequency === "quarterly" && <span className="col-span-2">低频数据，非日度</span>}</div>
             </div>
           ))}
         </div>
@@ -420,10 +421,10 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             </div>
             <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 text-left text-[12px] text-[#7d766a] sm:w-auto sm:justify-end sm:text-right sm:text-[13px]">
               <span className="hidden sm:inline">
-                当前 <span className="font-mono font-semibold text-[#2b2a26]">{new Date().toLocaleDateString("zh-CN")}</span>
+                当前 <span className="font-mono font-semibold text-[#2b2a26]">{d.currentDate}</span>
               </span>
               <span>
-                最近更新 <span className="font-mono font-semibold text-[#2b2a26]">{d.manifestGeneratedAt ? new Date(d.manifestGeneratedAt).toLocaleString("zh-CN", { hour12: false }) : "—"}</span>
+                最近更新 <span className="font-mono font-semibold text-[#2b2a26]">{formatShanghaiDateTime(d.manifestGeneratedAt)}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5" style={{ background: "#e6f4ec", color: "#1e8e5a" }}>
                 <span className="h-1.5 w-1.5 rounded-full bg-[#1e8e5a]" /> 数据正常
@@ -458,7 +459,7 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
             {/* Mobile 用 contents 让两列子组件统一参与 order；Desktop 恢复 60/40 两列 */}
             <div className="contents lg:col-span-3 lg:flex lg:flex-col lg:gap-4">
               <div className="order-1 lg:order-1"><InternationalGoldSummary data={d} /></div>
-              <div className="order-2 lg:order-2"><EventRiskStrip eventRisk={d.eventRisk} /></div>
+              <div className="order-2 lg:order-2"><EventRiskStrip eventRisk={d.eventRisk} now={d.generatedAt} /></div>
               <div className="order-5 lg:order-3"><CoreGoldTrendChart data={d} /></div>
               <div className="order-6 lg:order-4">
                 <MacroEnvironmentStrip dxy={macroDxy} real={macroReal} nominal={macroNominal} />
@@ -842,7 +843,7 @@ export default function RefinedV4Preview({ data: d, iconExists }: { data: Design
                     <td className="py-2 pr-3 text-[#7d766a]">{s.source}</td>
                     <td className="py-2 pr-3 text-[#7d766a]">{s.frequency}</td>
                     <td className="py-2 pr-3 font-mono text-[#7d766a]">{s.lastObservationDate}</td>
-                    <td className="py-2 pr-3 font-mono text-[#7d766a]">{new Date(s.lastFetchedAt).toLocaleString("zh-CN", { hour12: false })}</td>
+                    <td className="py-2 pr-3 font-mono text-[#7d766a]">{formatShanghaiDateTime(s.lastFetchedAt)}</td>
                     <td className="py-2 text-[#a8a193]">{s.frequency === "quarterly" ? "低频, 非日度" : ""}</td>
                   </tr>
                 ))}

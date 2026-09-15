@@ -27,8 +27,9 @@ export function formatEventTimeEt(value: string): string {
   return `${part("month")} ${part("day")} · ${part("hour")}:${part("minute")} ET`;
 }
 
-export function formatEventDistance(scheduledAt: string, now: Date): string {
-  const deltaMinutes = Math.max(0, Math.ceil((Date.parse(scheduledAt) - now.getTime()) / 60_000));
+export function formatEventDistance(scheduledAt: string, now: Date | string): string {
+  const nowMs = now instanceof Date ? now.getTime() : Date.parse(now);
+  const deltaMinutes = Math.max(0, Math.ceil((Date.parse(scheduledAt) - nowMs) / 60_000));
   if (!Number.isFinite(deltaMinutes) || deltaMinutes <= 0) return "NOW";
   if (deltaMinutes < 120) return `${deltaMinutes}M`;
   const hours = Math.ceil(deltaMinutes / 60);
@@ -43,7 +44,7 @@ export function sourceLabel(sourceName: string): string {
   return sourceName;
 }
 
-export default function EventRiskStrip({ eventRisk, now = new Date() }: { eventRisk: EventRisk; now?: Date }) {
+export default function EventRiskStrip({ eventRisk, now }: { eventRisk: EventRisk; now: Date | string }) {
   const event = eventRisk.nearestEvent;
   const staleWithoutEvent = eventRisk.stale && !event;
   const emptyMessage = eventRisk.availability === "unavailable"
@@ -109,7 +110,7 @@ export default function EventRiskStrip({ eventRisk, now = new Date() }: { eventR
 
         <div className="flex items-baseline justify-between gap-3 border-t pt-2 sm:flex sm:flex-col sm:items-end sm:justify-center sm:gap-0.5 sm:border-0 sm:pt-0 sm:text-right" style={{ borderColor: "#e8e1d1" }}>
           <span className="text-[12px] leading-none text-[#8a857a]">TIME TO EVENT</span>
-          <span suppressHydrationWarning className={`block font-mono leading-none ${visual.timingClass}`} style={{ color: visual.timing }}>{timing}</span>
+          <span className={`block font-mono leading-none ${visual.timingClass}`} style={{ color: visual.timing }}>{timing}</span>
         </div>
       </div>
     </aside>

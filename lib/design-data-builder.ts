@@ -1,6 +1,7 @@
 import type { PageData } from "./page-data";
 import type { AlignmentStatus, EtfFoundationRow } from "./cn-etf-foundation";
 import type { ChinaGoldAttributionWindow, CnEtfTrackingWindow } from "./china-analysis";
+import { formatShanghaiDate } from "./date-format";
 
 export type DesignWindow = "5D" | "20D" | "60D";
 export type DesignAvailability = "available" | "unavailable";
@@ -58,6 +59,8 @@ export interface DesignCnGoldEtf {
 }
 
 export interface DesignData {
+  generatedAt: string;
+  currentDate: string;
   manifestGeneratedAt: string | null;
   eventRisk: PageData["eventRisk"];
   whatChanged: PageData["whatChanged"];
@@ -139,6 +142,8 @@ export function buildDesignData(d: PageData): DesignData {
   const dailySharesAvailable = finiteOrNull(d.china.etf.sharesValue ?? foundation?.sharesHundredMillion) !== null;
 
   return {
+    generatedAt: d.generatedAt,
+    currentDate: formatShanghaiDate(d.generatedAt),
     manifestGeneratedAt: d.manifestGeneratedAt,
     eventRisk: d.eventRisk,
     whatChanged: d.whatChanged,
