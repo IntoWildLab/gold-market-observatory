@@ -6,8 +6,8 @@ import CosmicV5Preview from "@/components/design/refined-v5/CosmicV5Preview";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "黄金市场观察站 · Cosmic Prototype",
-  description: "Gold Market Observatory refined-v5 dark cosmic design prototype.",
+  title: "黄金市场观察站 · 夜间研究台",
+  description: "Gold Market Observatory refined-v5 dark research desk.",
 };
 
 export default async function DesignRefinedV5Page() {

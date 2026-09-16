@@ -1,5 +1,5 @@
 /**
- * refined-v5 route shell. The cosmic prototype is intentionally isolated from
+ * refined-v5 route shell. The dark research desk is intentionally isolated from
  * the production page and from the frozen refined-v4 light theme.
  */
 export default function RefinedV5Layout({ children }: { children: React.ReactNode }) {
