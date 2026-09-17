@@ -80,6 +80,7 @@ export default function CosmicV5Preview({ data }: { data: DesignData }) {
       <span className="v5-tagline">看见周期 · 认识价值 · 做更好的决策</span>
       <nav className="v5-nav" aria-label="主导航"><a className="active" href="#top">市场观察</a><a href="#market-brief">研究视角</a><a href="#transmission">数据工具</a><a href="#v5-footer">关于我们</a></nav>
       <span className="v5-search" aria-hidden="true"><i />搜索问题、数据或观点...</span>
+      <span className="v5-mobile-freshness">数据 {formatShanghaiDateTime(data.manifestGeneratedAt).slice(5, 10)} 更新</span>
       <time className="v5-header-time">{formatShanghaiDateTime(data.manifestGeneratedAt).slice(0, 16)}</time>
       <span className="v5-account" aria-hidden="true" />
     </div></header>
@@ -90,6 +91,7 @@ export default function CosmicV5Preview({ data }: { data: DesignData }) {
         <div className="v5-workspace-inner">
           <div className="v5-canvas"><CosmicCoreChart points={goldPoints} /><Transmission data={data} /></div>
           <MarketBrief data={data} />
+          <div className="v5-mobile-risk"><EventRisk data={data} /></div>
         </div>
         <footer id="v5-footer" className="v5-footer"><strong>黄金市场观察站</strong><span>穿越周期 · 遇见更大的图景</span><small>数据仅用于市场观察，不构成投资建议。</small></footer>
       </div>
