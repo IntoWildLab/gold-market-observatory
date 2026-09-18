@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DesignData } from "@/lib/design-data";
+import CapitalFlowLayer from "./CapitalFlowLayer";
+import InvestorLayer from "./InvestorLayer";
 import "./evidence-layer.css";
 
 type SeriesId = "au99_99" | "usd_cny" | "cn_gold_etf_price";
@@ -160,5 +162,5 @@ function TemperatureRationale({ data }: { data: DesignData }) {
 }
 
 export default function EvidenceLayer({ data }: { data: DesignData }) {
-  return <div className="v5-lower" aria-label="黄金市场研究证据层"><div className="v5-lower-inner"><ChinaResearch data={data} /><DriverLedger data={data} /><TemperatureRationale data={data} /></div></div>;
+  return <div className="v5-lower" aria-label="黄金市场研究证据层"><div className="v5-lower-inner"><ChinaResearch data={data} /><DriverLedger data={data} /><TemperatureRationale data={data} /><CapitalFlowLayer data={data} /><InvestorLayer data={data} /></div></div>;
 }
