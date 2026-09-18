@@ -4,6 +4,7 @@ import type { DesignData } from "@/lib/design-data";
 import { formatShanghaiDateTime } from "@/lib/date-format";
 import CosmicCoreChart from "./CosmicCoreChart";
 import EvidenceLayer from "./EvidenceLayer";
+import StructuralLayer from "./StructuralLayer";
 import "./refined-v5.css";
 
 const fmt = (value: number | null | undefined, digits = 2) => value == null ? "—" : value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -99,6 +100,7 @@ export default function CosmicV5Preview({ data }: { data: DesignData }) {
         <footer id="v5-footer" className="v5-footer"><strong>黄金市场观察站</strong><span>穿越周期 · 遇见更大的图景</span><small>数据仅用于市场观察，不构成投资建议。</small></footer>
       </div>
       <EvidenceLayer data={data} />
+      <StructuralLayer data={data} />
     </main>
   </div>;
 }
