@@ -3,6 +3,7 @@
 import type { DesignData } from "@/lib/design-data";
 import { formatShanghaiDateTime } from "@/lib/date-format";
 import CosmicCoreChart from "./CosmicCoreChart";
+import EvidenceLayer from "./EvidenceLayer";
 import "./refined-v5.css";
 
 const fmt = (value: number | null | undefined, digits = 2) => value == null ? "—" : value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -12,9 +13,11 @@ const tone = (value: number | null | undefined) => value == null ? "neutral" : v
 function EventRisk({ data }: { data: DesignData }) {
   const risk = data.eventRisk;
   const event = risk.nearestEvent;
-  return <a className="v5-event" href="#market-brief" aria-label="查看市场简报与事件风险">
+  const partial = risk.availability === "partial";
+  const message = event ? event.title : risk.availability === "unavailable" ? "事件日程不可用" : risk.stale ? "事件日程可能已过期" : partial ? "已获日程暂无重大事件" : "72 小时内无重大事件";
+  return <a className={`v5-event${partial ? " partial" : ""}`} href="#market-brief" aria-label={`查看市场简报与事件风险：${partial ? "日程部分可用，" : ""}${message}`}>
     <span className="v5-calendar" aria-hidden="true" />
-    <span className="v5-event-copy"><span>Event Risk 72H</span><strong>{event ? event.title : risk.availability === "unavailable" ? "事件日程不可用" : risk.stale ? "事件日程可能已过期" : "72 小时内无重大事件"}</strong></span>
+    <span className="v5-event-copy"><span>Event Risk 72H{partial && <em>部分可用</em>}</span><strong>{message}</strong></span>
     <span className="v5-chevron" aria-hidden="true">›</span>
   </a>;
 }
@@ -26,7 +29,7 @@ function ObservationStrip({ data }: { data: DesignData }) {
     <div className="v5-observation-inner">
       <div className="v5-spot"><span className="v5-spot-label"><b>XAU</b> 现货黄金</span><strong>{fmt(price)}</strong><span className="v5-unit">USD/oz</span></div>
       <div className="v5-strip-change"><strong className={tone(data.gold.dailyChangePct)}>{pct(data.gold.dailyChangePct)}</strong><span>20D <b className={tone(return20)}>{pct(return20)}</b></span></div>
-      <div className="v5-status"><span>今日状态</span><strong>{data.temperature.composite.label}</strong><span className="v5-signal" aria-hidden="true"><i /><i /><i /></span></div>
+      <div className="v5-status"><span>综合环境</span><strong>{data.temperature.composite.label}</strong><span className="v5-signal" aria-hidden="true"><i /><i /><i /></span></div>
       <div className="v5-updated"><span>数据更新&nbsp; <time>{formatShanghaiDateTime(data.manifestGeneratedAt)}</time></span><small>不同来源按各自数据日更新</small></div>
       <EventRisk data={data} />
     </div>
@@ -95,6 +98,7 @@ export default function CosmicV5Preview({ data }: { data: DesignData }) {
         </div>
         <footer id="v5-footer" className="v5-footer"><strong>黄金市场观察站</strong><span>穿越周期 · 遇见更大的图景</span><small>数据仅用于市场观察，不构成投资建议。</small></footer>
       </div>
+      <EvidenceLayer data={data} />
     </main>
   </div>;
 }
