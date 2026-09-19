@@ -37,10 +37,10 @@ function ResearchChart({ data }: { data: DesignData }) {
         <AreaChart data={points} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
           <defs><linearGradient id="v5-lower-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c9ac75" stopOpacity={0.18} /><stop offset="100%" stopColor="#c9ac75" stopOpacity={0} /></linearGradient></defs>
           <CartesianGrid stroke="#607080" strokeOpacity={0.14} vertical={false} />
-          <XAxis dataKey="date" ticks={monthTicks} tickFormatter={(value: string) => value.slice(0, 7)} tick={{ fill: "#879aad", fontSize: 11 }} minTickGap={45} interval="preserveStartEnd" tickLine={false} axisLine={{ stroke: "#526477" }} />
-          <YAxis domain={["auto", "auto"]} width={52} tick={{ fill: "#879aad", fontSize: 11 }} tickFormatter={(value: number) => fmt(value, precision)} tickLine={false} axisLine={false} />
-          <Tooltip contentStyle={{ background: "#0d1c29", border: "1px solid #405262", color: "#e3e8ef", borderRadius: 3, fontSize: 12 }} labelStyle={{ color: "#a9b9c8" }} formatter={(value, _name, item) => [typeof value === "number" ? `${fmt(value, precision)} ${series?.unit ?? ""}` : "—", item.dataKey === "value" ? (series?.label ?? "序列") : ""]} />
-          <Area type="monotone" dataKey="value" stroke="#d7ba7d" strokeWidth={1.8} fill="url(#v5-lower-area)" connectNulls={false} isAnimationActive={false} />
+          <XAxis dataKey="date" ticks={monthTicks} tickFormatter={(value: string) => value.slice(0, 7)} tick={{ fill: "#bfd0da", fontSize: 13 }} minTickGap={45} interval="preserveStartEnd" tickLine={false} axisLine={{ stroke: "#607686" }} />
+          <YAxis domain={["auto", "auto"]} width={58} tick={{ fill: "#bfd0da", fontSize: 13 }} tickFormatter={(value: number) => fmt(value, precision)} tickLine={false} axisLine={false} />
+          <Tooltip contentStyle={{ background: "#0d1c29", border: "1px solid #6d8391", color: "#e7edf2", borderRadius: 3, fontSize: 14 }} labelStyle={{ color: "#b6c7d1" }} formatter={(value, _name, item) => [typeof value === "number" ? `${fmt(value, precision)} ${series?.unit ?? ""}` : "—", item.dataKey === "value" ? (series?.label ?? "序列") : ""]} />
+          <Area type="monotone" dataKey="value" stroke="#e9ca80" strokeWidth={2.1} fill="url(#v5-lower-area)" connectNulls={false} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer> : <div className="v5-lower-empty">当前序列暂无可展示的观测</div>}
     </div>
@@ -58,8 +58,8 @@ function ChinaResearch({ data }: { data: DesignData }) {
     <div className="v5-lower-section-head"><span className="v5-lower-index">01 / RESEARCH</span><h2 id="v5-research-heading">国际与人民币黄金</h2><p>从全球定价与汇率，读到国内黄金的实际表现。</p></div>
     <div className="v5-lower-research-layout">
       <div className="v5-lower-research-main">
-        <div className="v5-lower-thesis"><span>近 20 日 · 跨市场对照</span><p>国际黄金 <b className={tone(change(comparison.gold))}>{signed(change(comparison.gold), "%")}</b><i>＋</i> USD/CNY <b className={tone(change(comparison.usdcny))}>{signed(change(comparison.usdcny), "%")}</b><i>→</i> Au99.99 <b className={tone(change(comparison.au99))}>{signed(change(comparison.au99), "%")}</b></p></div>
-        <div className="v5-lower-attribution-head"><strong>20D 收益贡献</strong><span>单位：百分点 · 同一共同观测日历</span></div>
+        <div className="v5-lower-thesis"><span>20D 跨市场表现 <small>各序列独立 20 个有效观测，非同一算式</small></span><p>国际黄金 <b className={tone(change(comparison.gold))}>{signed(change(comparison.gold), "%")}</b><i>／</i> USD/CNY <b className={tone(change(comparison.usdcny))}>{signed(change(comparison.usdcny), "%")}</b><i>／</i> Au99.99 <b className={tone(change(comparison.au99))}>{signed(change(comparison.au99), "%")}</b></p></div>
+        <div className="v5-lower-attribution-head"><strong>收益贡献拆解 · 20D</strong><span>共同样本日 · 单位：百分点</span></div>
         <div className="v5-lower-attribution">
           {[
             ["国际黄金", window?.gold_contribution_pp],
@@ -67,10 +67,10 @@ function ChinaResearch({ data }: { data: DesignData }) {
             ["国内定价偏离 / 本地因素", window?.deviation_contribution_pp],
           ].map(([label, value]) => <div className="v5-lower-attribution-row" key={String(label)}><span>{label}</span><strong className={tone(value as number | null)}>{available ? signed(value as number | null, "pp") : "—"}</strong></div>)}
         </div>
-        <p className="v5-lower-data-note">{available ? `共同样本 ${window.sample_count} 个 · ${window.start_date} → ${window.end_date} · Au99.99 实际收益 ${signed(window.actual_au99_return_pct, "%")}` : "共同样本不足，20D 收益贡献暂不可用。"} 上方各序列近 20 日对照与共同日历归因的观测区间可能不同，不可直接相加。</p>
+        <p className="v5-lower-data-note">{available ? `共同样本 ${window.sample_count} 个 · ${window.start_date} → ${window.end_date} · Au99.99 实际收益 ${signed(window.actual_au99_return_pct, "%")}` : "共同样本不足，20D 收益贡献暂不可用。"} 与上方独立 20D 对照的日期可能不同。</p>
       </div>
       <div className="v5-lower-conversion">
-        <span className="v5-lower-kicker">同日对照 · 理论折算仅供研究</span>
+        <span className="v5-lower-kicker">同日理论折算 · 研究参考</span>
         <h3>人民币黄金的折算与实际</h3>
         <div className="v5-lower-conversion-row"><span>国际金价 × USD/CNY 换算</span><strong>{fmt(theoretical?.theoretical)} <small>元/克</small></strong></div>
         <div className="v5-lower-conversion-row"><span>Au99.99 实际</span><strong>{fmt(theoretical?.au99)} <small>元/克</small></strong></div>
@@ -155,7 +155,7 @@ function TemperatureRationale({ data }: { data: DesignData }) {
     </div>
     <div className="v5-lower-echo"><span>综合判断</span><strong>{t.composite.label}</strong></div>
     <details className="v5-lower-disclosure"><summary>查看判断规则与详细依据</summary>
-      {dimensions.map((dim) => <div key={dim.name}><p><b>{dim.name} · {dim.scale}</b>：核心指标 {dim.detail.core.map((row) => row.label).join("、") || "无"}；辅助确认 {dim.detail.confirmations.map((row) => row.label).join("、") || "无"}（不独立投票）。</p><p>{dim.detail.ruleText}</p>{dim.detail.core.map((row) => <p key={row.id}><b>{row.label}</b> · {row.detail}</p>)}{dim.detail.confirmations.map((row) => <p key={row.id} className="v5-lower-confirm"><b>{row.label}</b> · {row.detail} · {row.note}</p>)}{dim.detail.insufficient && <p>当前证据有限；维度判断及数据不足处理以现有规则为准。</p>}</div>)}
+      {dimensions.map((dim) => <div key={dim.name}><p><b>{dim.name} · {dim.scale}</b>：核心指标 {dim.detail.core.map((row) => row.label).join("、") || "无"}；辅助确认 {dim.detail.confirmations.map((row) => row.label).join("、") || "无"}（不独立投票）。</p><p>{dim.detail.ruleText}</p>{dim.detail.insufficient && <p>当前证据有限；维度判断及数据不足处理以现有规则为准。</p>}</div>)}
       <p><b>趋势 · 结果变量 · 不投票</b>：{t.trend.ruleText} {t.trend.detail}</p><p><b>综合状态</b>：{t.composite.summary}</p><p>{t.composite.ruleText}</p><p>{t.disclaimer}</p>
     </details>
   </section>;

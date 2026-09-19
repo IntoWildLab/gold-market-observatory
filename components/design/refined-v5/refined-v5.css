@@ -1,7 +1,7 @@
 .v5-page{position:relative;left:50%;width:100vw;min-height:100dvh;margin-top:-24px;margin-bottom:-24px;transform:translateX(-50%);overflow:hidden;background:#0d1c29;color:#e5e9f2;font-family:"Noto Sans CJK SC","Microsoft YaHei",system-ui,sans-serif;font-size:15px}
 .v5-page *{box-sizing:border-box}
 .v5-page .up{color:#f26771}.v5-page .down{color:#4cdbb6}.v5-page .neutral{color:#bdcad9}
-.v5-page a:focus-visible,.v5-page button:focus-visible{outline:2px solid #7bbde7;outline-offset:4px}
+.v5-page a:focus-visible,.v5-page button:focus-visible,.v5-page summary:focus-visible{outline:2px solid #7bbde7;outline-offset:4px}
 .v5-mobile-freshness,.v5-mobile-risk{display:none}
 .v5-header{height:62px;border-bottom:1px solid #283a48;background:#0b1a27}
 .v5-header-inner{max-width:1700px;height:100%;margin:auto;padding:0 2.4%;display:flex;align-items:center;gap:0;white-space:nowrap}
@@ -168,4 +168,31 @@
   .v5-footer{padding:12px 20px 20px;gap:8px;font-size:11px}
   .v5-footer span{padding-left:8px}
   .v5-footer small{font-size:10px}
+}
+
+/* Phase 5E: one continuous document, with the research layer visibly following the canvas. */
+.v5-brand h1{margin:0;font-size:23px;font-weight:550;letter-spacing:.12em}
+.v5-strip-change{flex-direction:column;align-items:flex-start;gap:2px}.v5-strip-window{color:#a9bbca;font-size:11px;letter-spacing:.02em}
+.v5-brief-window{display:block;margin-top:15px;color:#abbaca;font-size:12px}
+.v5-brief-window + h3{margin-top:5px}
+.v5-continuation{display:flex;align-items:center;justify-content:space-between;gap:24px;max-width:1700px;margin:auto;padding:24px 2.4% 28px;border-top:1px solid rgba(151,170,186,.26);background:#0b1925;color:#b9c9d5}
+.v5-continuation span{color:#bba77f;font:11px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.1em}
+.v5-continuation strong{display:block;margin-top:5px;font-size:17px;font-weight:450;color:#dbe4e9}
+.v5-continuation p{margin:4px 0 0;color:#97aab9;font-size:12px}
+.v5-continuation a{color:#d2bd91;text-decoration:none;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;white-space:nowrap}
+.v5-continuation a span{margin-left:8px;font-size:17px}
+.v5-continuation a{display:inline-flex;align-items:center;min-height:44px}
+.v5-footer{max-width:none;padding:24px max(2.4%,calc((100vw - 1700px)/2)) 32px;border-top:1px solid rgba(151,170,186,.26);background:#0a1721}
+@media(max-width:1300px){.v5-brand h1{font-size:20px}}
+@media(max-width:650px){
+  .v5-brand h1{font-size:15.5px;letter-spacing:.06em;white-space:nowrap}
+  .v5-strip-change{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;align-items:baseline}
+  .v5-strip-window{grid-column:1/-1;font-size:11px}
+  .v5-strip-change>span:last-child{font-size:11px}
+  .v5-brief-window{margin-top:10px;font-size:11px}
+  .v5-continuation{align-items:flex-start;padding:18px 20px 21px;gap:10px}
+  .v5-continuation strong{font-size:15px}.v5-continuation p{font-size:11px;line-height:1.4}
+  .v5-continuation a{width:44px;height:44px;justify-content:center;font-size:0;align-self:center}.v5-continuation a span{margin:0;font-size:22px}
+  .v5-footer{padding:24px 20px 30px;gap:8px;font-size:11px}
+  .v5-footer small{font-size:11px;line-height:1.5}
 }

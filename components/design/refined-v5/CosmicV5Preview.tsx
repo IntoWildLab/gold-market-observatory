@@ -29,7 +29,7 @@ function ObservationStrip({ data }: { data: DesignData }) {
   return <section className="v5-observation" aria-label="顶部市场观察">
     <div className="v5-observation-inner">
       <div className="v5-spot"><span className="v5-spot-label"><b>XAU</b> 现货黄金</span><strong>{fmt(price)}</strong><span className="v5-unit">USD/oz</span></div>
-      <div className="v5-strip-change"><strong className={tone(data.gold.dailyChangePct)}>{pct(data.gold.dailyChangePct)}</strong><span>20D <b className={tone(return20)}>{pct(return20)}</b></span></div>
+      <div className="v5-strip-change"><span className="v5-strip-window">短线价格 · 近 1 日</span><strong className={tone(data.gold.dailyChangePct)}>{pct(data.gold.dailyChangePct)}</strong><span>中期价格 · 20D <b className={tone(return20)}>{pct(return20)}</b></span></div>
       <div className="v5-status"><span>综合环境</span><strong>{data.temperature.composite.label}</strong><span className="v5-signal" aria-hidden="true"><i /><i /><i /></span></div>
       <div className="v5-updated"><span>数据更新&nbsp; <time>{formatShanghaiDateTime(data.manifestGeneratedAt)}</time></span><small>不同来源按各自数据日更新</small></div>
       <EventRisk data={data} />
@@ -61,8 +61,8 @@ function MarketBrief({ data }: { data: DesignData }) {
   const view = data.whatChanged;
   return <aside id="market-brief" className="v5-brief" aria-labelledby="v5-brief-heading">
     <div className="v5-brief-heading"><h2 id="v5-brief-heading">市场简报</h2><span>What Changed</span></div>
-    <h3>{view.goldMove.description}</h3>
-    <div className="v5-brief-move"><span>{view.goldMove.window}</span><strong className={tone(view.goldMove.changePct)}>{pct(view.goldMove.changePct)}</strong></div>
+    <span className="v5-brief-window">短线价格表现</span><h3>{view.goldMove.description}</h3>
+    <div className="v5-brief-move"><span>{view.goldMove.window} 变化</span><strong className={tone(view.goldMove.changePct)}>{pct(view.goldMove.changePct)}</strong></div>
     <div className="v5-evidence-title">关键证据{view.availability === "partial" && <span> · 部分证据</span>}</div>
     <div className="v5-evidence">
       {view.evidence.length ? view.evidence.slice(0, 3).map((item) => <div className="v5-evidence-item" key={item.id}>
@@ -70,7 +70,7 @@ function MarketBrief({ data }: { data: DesignData }) {
         <div className="v5-evidence-sub">{item.auxiliary ? "辅助确认" : "核心证据"} · {item.startDate} → {item.endDate}{item.stale ? " · 更新较慢" : ""}</div>
       </div>) : <p className="v5-muted">宏观变化数据不足</p>}
     </div>
-    <div className="v5-brief-note"><span>当前环境</span><strong>{view.environment.label}</strong><p>{view.environment.explanation}</p></div>
+    <div className="v5-brief-note"><span>综合环境 · 驱动判断</span><strong>{view.environment.label}</strong><p>{view.environment.explanation}</p></div>
     <div className="v5-brief-note"><span>下一观察点</span><strong>{view.nextWatch.label}</strong></div>
     <p className="v5-brief-disclaimer">{view.disclaimer}</p>
   </aside>;
@@ -80,7 +80,7 @@ export default function CosmicV5Preview({ data }: { data: DesignData }) {
   const goldPoints = data.charts.find((chart) => chart.seriesId === "gold_price")?.points ?? [];
   return <div className="v5-page">
     <header className="v5-header"><div className="v5-header-inner">
-      <a href="#top" className="v5-brand"><span className="v5-brand-mark" aria-hidden="true"><i /><i /></span><strong>黄金市场观察站</strong></a>
+      <a href="#top" className="v5-brand"><span className="v5-brand-mark" aria-hidden="true"><i /><i /></span><h1>黄金市场观察站</h1></a>
       <span className="v5-tagline">看见周期 · 认识价值 · 做更好的决策</span>
       <nav className="v5-nav" aria-label="主导航"><a className="active" href="#top">市场观察</a><a href="#market-brief">研究视角</a><a href="#transmission">数据工具</a><a href="#v5-footer">关于我们</a></nav>
       <span className="v5-search" aria-hidden="true"><i />搜索问题、数据或观点...</span>
@@ -97,10 +97,11 @@ export default function CosmicV5Preview({ data }: { data: DesignData }) {
           <MarketBrief data={data} />
           <div className="v5-mobile-risk"><EventRisk data={data} /></div>
         </div>
-        <footer id="v5-footer" className="v5-footer"><strong>黄金市场观察站</strong><span>穿越周期 · 遇见更大的图景</span><small>数据仅用于市场观察，不构成投资建议。</small></footer>
       </div>
+      <div className="v5-continuation"><div><span>继续观察</span><strong>研究与证据层</strong><p>跨市场对照、驱动证据、资金流与长期结构</p></div><a href="#v5-research-heading">进入 01 / RESEARCH <span aria-hidden="true">↓</span></a></div>
       <EvidenceLayer data={data} />
       <StructuralLayer data={data} />
+      <footer id="v5-footer" className="v5-footer"><strong>黄金市场观察站</strong><span>穿越周期 · 遇见更大的图景</span><small>数据仅用于市场观察，不构成投资建议。</small></footer>
     </main>
   </div>;
 }

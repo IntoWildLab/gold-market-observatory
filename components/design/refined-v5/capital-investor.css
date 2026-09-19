@@ -13,3 +13,67 @@
 @media(max-width:650px){.v5-capital,.v5-investor{margin-top:45px}.v5-capital-reading{display:block;padding:23px 0 16px}.v5-capital-primary strong{font-size:30px}.v5-capital-primary p{display:block;font-size:12px}.v5-capital-primary p b{font-size:19px;margin-left:7px}.v5-capital-primary p span{display:block;margin-top:8px}.v5-capital-context{border-left:0;border-top:1px solid rgba(151,170,186,.18);margin-top:18px;padding:16px 0 0}.v5-capital-context strong{font-size:19px;margin:6px 0}.v5-capital-canvas{padding-top:20px}.v5-capital-canvas-head{display:block}.v5-capital-canvas h3{font-size:16px}.v5-capital-chart-meta,.v5-capital-chart-foot{display:block;line-height:1.7}.v5-capital-chart-meta span,.v5-capital-chart-foot span{display:block}.v5-capital-plot{height:220px}.v5-capital-gld{display:block}.v5-capital-gld p{margin-top:10px;font-size:12px}.v5-capital-gld time{display:block;text-align:left;margin-top:6px;font-size:10px}
 .v5-investor-reading{display:block}.v5-investor-reading>div,.v5-investor-reading>div:first-child{padding:18px 0}.v5-investor-reading>div+div{border-left:0;border-top:1px solid rgba(151,170,186,.2)}.v5-investor-price strong{font-size:30px}.v5-investor-reading strong{font-size:21px;margin:6px 0}.v5-investor-body{display:flex;flex-direction:column;padding:22px 0 18px}.v5-investor-row{padding:12px 0 13px;gap:3px 10px}.v5-investor-row:first-of-type{margin-top:4px}.v5-investor-row .v5-investor-answer{font-size:18px}.v5-investor-row-label{font-size:9px;align-self:baseline}.v5-investor-metric{font-size:13px}.v5-investor-row p{font-size:11px}.v5-investor-row small{font-size:10px}.v5-investor-chart{border-left:0;border-top:1px solid rgba(151,170,186,.25);padding:22px 0 0;margin-top:12px}.v5-investor-chart h3{font-size:16px}.v5-investor-plot{height:220px;margin-top:10px}
 }
+
+.v5-capital{margin-top:94px;padding-top:84px}
+.v5-investor{margin-top:60px;padding-top:56px}
+@media(max-width:650px){
+  .v5-capital{margin-top:55px;padding-top:48px}.v5-investor{margin-top:34px;padding-top:38px}
+  .v5-capital-chart-meta,.v5-capital-chart-foot,.v5-capital-gld time{font-size:11px;color:#9aafbd}
+  .v5-investor-row-label{font-size:11px;color:#9aafbd}
+  .v5-investor-row small,.v5-investor-reading time{font-size:11px;color:#9aafbd}
+  .v5-investor-chart-head p,.v5-investor-source{font-size:11px}
+}
+
+/* Phase 5E.1: preserve the compact readings while restoring text hierarchy. */
+.v5-capital-primary strong.inflow{color:var(--v5-read-teal)}.v5-capital-primary strong.outflow{color:var(--v5-read-coral)}
+.v5-capital-primary p,.v5-capital-gld p{font-size:15px;color:var(--v5-read-secondary)}
+.v5-capital-primary p span,.v5-capital-context p,.v5-capital-gld time{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-capital-context>span,.v5-investor-nav>span,.v5-investor-premium>span,.v5-capital-context small,.v5-investor-reading small{font-size:13px;color:var(--v5-read-tertiary)}
+.v5-capital-canvas h3,.v5-investor-chart h3{font-size:21px;font-weight:450;color:var(--v5-read-primary)}
+.v5-capital-chart-meta,.v5-capital-chart-foot{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-flow-key i.inflow{background:#8bcdbf}.v5-flow-key i.outflow{background:#dda49e}
+.v5-capital-gld strong{font-size:16px;color:var(--v5-read-primary)}
+.v5-investor-price strong{color:var(--v5-read-gold)}
+.v5-investor-premium strong.negative{color:var(--v5-read-teal)}.v5-investor-premium strong.positive{color:var(--v5-read-gold)}
+.v5-investor-reading p,.v5-investor-reading time{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-investor-row .v5-investor-answer{font-size:21px;color:var(--v5-read-primary);font-weight:520}
+.v5-investor-row-label,.v5-investor-row small{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-investor-metric{font-size:14px;color:var(--v5-read-secondary)}
+.v5-investor-metric span,.v5-investor-row p{font-size:14px;color:var(--v5-read-secondary)}
+.v5-investor-chart-head p,.v5-investor-source{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-investor-chart .recharts-area-curve{stroke:#e2c68b;stroke-width:2}
+.v5-investor-chart .recharts-cartesian-axis-tick text{fill:#b2c5d1;font-size:12px}
+@media(max-width:650px){
+  .v5-capital-primary p,.v5-capital-gld p{font-size:15px}
+  .v5-capital-primary p span,.v5-capital-context p,.v5-capital-gld time{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-capital-context>span,.v5-capital-context small,.v5-investor-reading small{font-size:13px}
+  .v5-capital-canvas h3,.v5-investor-chart h3{font-size:21px}
+  .v5-capital-chart-meta,.v5-capital-chart-foot,.v5-investor-chart-head p,.v5-investor-source{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-investor-reading p,.v5-investor-reading time{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-investor-row .v5-investor-answer{font-size:22px}
+  .v5-investor-row-label,.v5-investor-row small{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-investor-metric,.v5-investor-metric span{font-size:14px}
+}
+
+/* Phase 5E.2: chart information and investor answers receive one final size step. */
+.v5-capital-canvas h3,.v5-investor-chart h3{font-size:22px}
+.v5-capital-chart-meta,.v5-capital-chart-foot{font-size:13px}
+.v5-capital-primary p,.v5-capital-gld p{font-size:15px}
+.v5-capital-primary p span,.v5-capital-context p,.v5-capital-gld time{font-size:13px}
+.v5-capital-gld strong{font-size:17px}
+.v5-investor-row .v5-investor-answer{font-size:22px}
+.v5-investor-row-label,.v5-investor-row small{font-size:13px}
+.v5-investor-metric,.v5-investor-metric span,.v5-investor-row p{font-size:15px}
+.v5-investor-chart-head p,.v5-investor-source{font-size:13px}
+.v5-investor-chart .recharts-cartesian-axis-tick text{fill:#bfd0da;font-size:13px}
+@media(max-width:650px){
+  .v5-capital-canvas h3,.v5-investor-chart h3{font-size:22px}
+  .v5-capital-chart-meta,.v5-capital-chart-foot{font-size:14px}
+  .v5-capital-primary p,.v5-capital-gld p{font-size:16px}
+  .v5-capital-primary p span,.v5-capital-context p,.v5-capital-gld time{font-size:14px}
+  .v5-capital-gld strong{font-size:18px}
+  .v5-investor-row .v5-investor-answer{font-size:23px}
+  .v5-investor-row-label,.v5-investor-row small{font-size:14px}
+  .v5-investor-metric,.v5-investor-metric span{font-size:15px}
+  .v5-investor-chart-head p,.v5-investor-source{font-size:14px}
+}

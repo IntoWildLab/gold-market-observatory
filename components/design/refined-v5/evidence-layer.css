@@ -83,3 +83,102 @@
   .v5-lower-mobile-aux .v5-lower-driver-row{opacity:1}
   .v5-lower-synthesis-path{font-size:11px}.v5-lower-synthesis-path span{padding:0 7px}
 }
+
+/* The synthesis closes the ledger; the chart-led flow opens a new reading pace. */
+.v5-lower-rationale{margin-top:54px;padding-top:56px}
+.v5-lower-chart-tabs button{min-height:44px}
+.v5-lower-disclosure summary{display:inline-flex;align-items:center;min-height:44px}
+@media(max-width:650px){
+  .v5-lower-rationale{margin-top:32px;padding-top:38px}
+  .v5-lower-thesis>span small{display:block;margin-top:4px;color:#a5b7c4;font-size:11px;line-height:1.4}
+  .v5-lower-data-note,.v5-lower-conversion p,.v5-lower-chart-source{font-size:11px}
+  .v5-lower-attribution-head span,.v5-lower-chart-meta{font-size:11px}
+  .v5-lower-driver-fresh,.v5-lower-driver-fresh small,.v5-lower-driver-role{font-size:11px!important;color:#9eb1c0!important}
+  .v5-lower-driver-reading p{font-size:11px}
+  .v5-lower-mobile-aux summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:11px}
+  .v5-lower-disclosure{font-size:11px}
+}
+
+/* Phase 5E.1: readable research layers, with method notes still quieter. */
+.v5-lower{--v5-read-primary:#e7edf2;--v5-read-secondary:#cbd8e1;--v5-read-tertiary:#adc1cf;--v5-read-quiet:#96aaba;--v5-read-gold:#e2c68b;--v5-read-teal:#91cdbf;--v5-read-coral:#dda8a2}
+.v5-lower-section-head h2{font-size:31px;font-weight:400;color:var(--v5-read-primary)}
+.v5-lower-section-head p{font-size:15px;color:var(--v5-read-secondary);max-width:48ch;justify-self:end}
+.v5-lower-index,.v5-lower-kicker{font-size:12px;color:var(--v5-read-gold)}
+.v5-lower-conversion h3,.v5-lower-chart h3{font-size:20px;font-weight:450;color:var(--v5-read-primary)}
+.v5-lower-thesis>span,.v5-lower-thesis>span small,.v5-lower-attribution-head span,.v5-lower-chart-meta,.v5-lower-chart-source{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-lower-thesis p,.v5-lower-attribution-row,.v5-lower-conversion-row>span{color:var(--v5-read-secondary)}
+.v5-lower-attribution-row,.v5-lower-conversion-row>span{font-size:15px}
+.v5-lower-attribution-head strong{font-size:16px;color:var(--v5-read-primary)}
+.v5-lower-data-note,.v5-lower-conversion p{font-size:14px;color:var(--v5-read-secondary);max-width:95ch}
+.v5-lower .positive{color:var(--v5-read-gold)}.v5-lower .negative{color:var(--v5-read-teal)}.v5-lower .muted{color:var(--v5-read-tertiary)}
+.v5-lower-chart-tabs button{font-size:14px;color:var(--v5-read-tertiary)}
+.v5-lower-chart-tabs button.selected,.v5-lower-chart-tabs button:hover{color:var(--v5-read-gold);border-color:var(--v5-read-gold)}
+.v5-lower-ledger-head{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-lower-ledger-group h3{font-size:18px;color:var(--v5-read-primary)}
+.v5-lower-ledger-group h3 span,.v5-lower-driver-name small,.v5-lower-driver-reading small,.v5-lower-driver-fresh,.v5-lower-driver-fresh small{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-lower-driver-name strong{font-size:16px;color:var(--v5-read-primary)}
+.v5-lower-driver-reading,.v5-lower-driver-reading p{font-size:14px;color:var(--v5-read-secondary)}
+.v5-lower-driver-reading strong{color:var(--v5-read-primary)}
+.v5-lower-driver-role{font-size:12px!important;color:var(--v5-read-tertiary)!important}
+.v5-lower-ledger-note,.v5-lower-dim-explanation{font-size:14px;color:var(--v5-read-secondary)}
+.v5-lower-dim-name,.v5-lower-rationale-row strong{font-size:16px;color:var(--v5-read-primary)}
+.v5-lower-echo span,.v5-lower-synthesis-path{font-size:14px;color:var(--v5-read-secondary)}
+.v5-lower-echo strong{font-size:19px;color:var(--v5-read-gold)}
+.v5-lower-disclosure{font-size:12px;color:var(--v5-read-quiet)}
+.v5-lower-disclosure summary{font-size:13px;color:var(--v5-read-tertiary)}
+@media(max-width:650px){
+  .v5-lower-section-head h2{font-size:29px;line-height:1.25;margin:9px 0 10px}
+  .v5-lower-section-head p{font-size:15px;line-height:1.55;max-width:none}
+  .v5-lower-index,.v5-lower-kicker{font-size:13px}
+  .v5-lower-thesis>span,.v5-lower-thesis>span small,.v5-lower-attribution-head span,.v5-lower-chart-meta,.v5-lower-chart-source{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-lower-thesis p{font-size:16px}
+  .v5-lower-attribution-head strong{font-size:16px}
+  .v5-lower-attribution-row,.v5-lower-conversion-row>span{font-size:15px}
+  .v5-lower-data-note,.v5-lower-conversion p{font-size:14px;color:var(--v5-read-secondary)}
+  .v5-lower-chart h3,.v5-lower-conversion h3{font-size:21px;line-height:1.35}
+  .v5-lower-chart-tabs button{font-size:14px}
+  .v5-lower-ledger-group h3{font-size:18px}
+  .v5-lower-ledger-group h3 em{font-size:13px}
+  .v5-lower-driver-name strong{font-size:16px}
+  .v5-lower-driver-badge{font-size:12px}
+  .v5-lower-driver-reading,.v5-lower-driver-reading p{font-size:14px;line-height:1.55;color:var(--v5-read-secondary)}
+  .v5-lower-driver-fresh,.v5-lower-driver-fresh small,.v5-lower-driver-role{font-size:13px!important;color:var(--v5-read-tertiary)!important}
+  .v5-lower-ledger-note,.v5-lower-dim-explanation{font-size:14px}
+  .v5-lower-rationale-row{grid-template-columns:56px minmax(0,1fr)}
+  .v5-lower-rationale-row strong,.v5-lower-dim-name{font-size:15px}
+  .v5-lower-echo span,.v5-lower-synthesis-path{font-size:13px}
+  .v5-lower-mobile-aux summary{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-lower-disclosure{font-size:12px}
+}
+
+/* Phase 5E.2: final lift for normal desktop and phone viewing distance. */
+.v5-lower-section-head h2{font-size:34px;line-height:1.2}
+.v5-lower-index,.v5-lower-kicker{font-size:13px}
+.v5-lower-conversion h3,.v5-lower-chart h3{font-size:22px}
+.v5-lower-thesis>span,.v5-lower-thesis>span small,.v5-lower-attribution-head span,.v5-lower-chart-meta,.v5-lower-chart-source{font-size:13px}
+.v5-lower-chart-tabs button{font-size:15px}
+.v5-lower-ledger-head{font-size:13px}
+.v5-lower-ledger-group h3{font-size:20px}
+.v5-lower-ledger-group h3 span{font-size:13px}
+.v5-lower-driver-name strong{font-size:17px}
+.v5-lower-driver-badge{font-size:12px}
+.v5-lower-driver-reading,.v5-lower-driver-reading p{font-size:15px;line-height:1.55}
+.v5-lower-driver-fresh,.v5-lower-driver-fresh small{font-size:13px}
+.v5-lower-driver-role{font-size:13px!important}
+.v5-lower-ledger-note,.v5-lower-dim-explanation{font-size:15px}
+.v5-lower-dim-name,.v5-lower-rationale-row strong{font-size:17px}
+.v5-lower-synthesis-path{font-size:15px}
+@media(max-width:650px){
+  .v5-lower-section-head h2{font-size:30px}
+  .v5-lower-index,.v5-lower-kicker{font-size:13px}
+  .v5-lower-chart h3,.v5-lower-conversion h3{font-size:22px}
+  .v5-lower-chart-tabs button{font-size:15px}
+  .v5-lower-ledger-group h3{font-size:19px}
+  .v5-lower-ledger-group h3 em{font-size:14px}
+  .v5-lower-driver-name strong{font-size:17px}
+  .v5-lower-driver-badge{font-size:13px}
+  .v5-lower-driver-reading,.v5-lower-driver-reading p{font-size:15px;line-height:1.6}
+  .v5-lower-driver-fresh,.v5-lower-driver-fresh small,.v5-lower-driver-role{font-size:14px!important}
+  .v5-lower-ledger-note,.v5-lower-dim-explanation{font-size:15px}
+  .v5-lower-rationale-row strong,.v5-lower-dim-name{font-size:16px}
+}

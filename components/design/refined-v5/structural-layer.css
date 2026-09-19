@@ -9,3 +9,44 @@
 .v5-structure-chart-head{display:flex;justify-content:space-between;gap:15px;margin-top:30px;padding-top:15px;border-top:1px solid rgba(151,170,186,.15);font-size:11px;color:#879cac}.v5-structure-plot{height:190px;width:100%;margin-top:9px;touch-action:pan-y}.v5-structure-source{margin:6px 0 0;color:#778d9e;font-size:10px;line-height:1.5}
 .v5-structure-context{display:flex;align-items:baseline;gap:24px;padding:19px 0;color:#9bacb8}.v5-structure-context span{flex:none;color:#a99c81;font-size:11px}.v5-structure-context p{margin:0;font-size:12px;line-height:1.6}.v5-structure .v5-lower-disclosure{padding-top:11px}
 @media(max-width:650px){.v5-structure-inner{padding:0 20px 70px}.v5-structure{padding-top:41px}.v5-structure .v5-lower-section-head{padding-bottom:18px}.v5-structure-intro{display:block;padding:15px 0 18px}.v5-structure-intro p{margin-top:8px;font-size:11px}.v5-structure-observations{display:block}.v5-structure-observation,.v5-structure-observation+div{padding:23px 0 19px;border-left:0}.v5-structure-observation+div{border-top:1px solid rgba(151,170,186,.23)}.v5-structure-reading h3{font-size:15px;margin:8px 0 12px}.v5-structure-reading strong{font-size:14px}.v5-structure-value{font-size:23px;margin:6px 0}.v5-structure-reading p{font-size:11px}.v5-structure-chart-head{margin-top:23px;padding-top:12px;font-size:10px}.v5-structure-plot{height:170px}.v5-structure-context{display:block;padding:17px 0}.v5-structure-context p{font-size:11px;margin-top:6px}}
+@media(max-width:650px){
+  .v5-structure-intro p,.v5-structure-chart-head,.v5-structure-source,.v5-structure-context p{font-size:11px;color:#9aafbd}
+  .v5-structure-reading p{font-size:11px;color:#9aafbd}
+}
+
+/* Phase 5E.1: low-frequency context stays quiet, yet readable. */
+.v5-structure-shell{--v5-read-primary:#e7edf2;--v5-read-secondary:#cbd8e1;--v5-read-tertiary:#adc1cf;--v5-read-gold:#e2c68b}
+.v5-structure .v5-lower-section-head h2{color:var(--v5-read-primary)}
+.v5-structure-intro span,.v5-structure-reading>span{font-size:12px;color:var(--v5-read-gold)}
+.v5-structure-intro p,.v5-structure-context p{font-size:15px;color:var(--v5-read-secondary);max-width:95ch}
+.v5-structure-reading h3{font-size:21px;font-weight:450;color:var(--v5-read-primary)}
+.v5-structure-reading strong{font-size:16px;color:#a4d3c4}
+.v5-structure-value{font-size:31px;color:var(--v5-read-primary)}
+.v5-structure-value small,.v5-structure-reading p{font-size:13px;color:var(--v5-read-tertiary)}
+.v5-structure-chart-head{font-size:13px;color:var(--v5-read-secondary)}
+.v5-structure-source{font-size:12px;color:var(--v5-read-tertiary)}
+.v5-structure-context span{font-size:12px;color:var(--v5-read-gold)}
+@media(max-width:650px){
+  .v5-structure-intro span,.v5-structure-reading>span{font-size:13px}
+  .v5-structure-intro p,.v5-structure-context p{font-size:15px;color:var(--v5-read-secondary)}
+  .v5-structure-reading h3{font-size:21px;line-height:1.35}
+  .v5-structure-reading strong{font-size:16px}
+  .v5-structure-value{font-size:28px}
+  .v5-structure-value small,.v5-structure-reading p,.v5-structure-chart-head,.v5-structure-source{font-size:13px;color:var(--v5-read-tertiary)}
+  .v5-structure-context span{font-size:13px}
+}
+
+/* Phase 5E.2: retain the quieter cadence while lifting labels and series context. */
+.v5-structure-intro span,.v5-structure-reading>span{font-size:13px}
+.v5-structure-reading h3{font-size:22px}
+.v5-structure-reading strong{font-size:17px}
+.v5-structure-value{font-size:33px}
+.v5-structure-value small,.v5-structure-reading p,.v5-structure-chart-head,.v5-structure-source{font-size:13px}
+.v5-structure-context span{font-size:13px}
+@media(max-width:650px){
+  .v5-structure-reading h3{font-size:22px}
+  .v5-structure-reading strong{font-size:17px}
+  .v5-structure-value{font-size:30px}
+  .v5-structure-value small,.v5-structure-reading p,.v5-structure-chart-head,.v5-structure-source{font-size:14px}
+  .v5-structure-intro span,.v5-structure-reading>span,.v5-structure-context span{font-size:14px}
+}
