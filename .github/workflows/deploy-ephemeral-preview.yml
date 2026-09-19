@@ -100,6 +100,27 @@ jobs:
         id: typecheck
         run: npm run typecheck
 
+      - name: Verify refined-v5 browser hydration and interactions
+        id: refined-v5-browser
+        env:
+          EXPECTED_EVENT_RISK_AVAILABILITY: unavailable
+        run: |
+          npm run build
+          npm run start -- --hostname 127.0.0.1 > "$RUNNER_TEMP/refined-v5-next.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:3000/design/refined-v5 >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              cat "$RUNNER_TEMP/refined-v5-next.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          node scripts/smoke-refined-v5-browser.mjs http://127.0.0.1:3000/design/refined-v5
+
       - name: Pull Vercel Preview project settings
         id: vercel-pull
         env:
@@ -211,7 +232,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          for route in / /design/refined-v4; do
+          for route in / /design/refined-v4 /design/refined-v5; do
             response_file="$(mktemp)"
             npx --yes vercel@59.1.4 curl "$route" \
               --deployment "$PREVIEW_URL" \
@@ -236,6 +257,7 @@ jobs:
           QUALITY_OUTCOME: ${{ steps.quality.outcome }}
           TEST_STATUS: ${{ steps.tests.outcome }}
           TYPECHECK_STATUS: ${{ steps.typecheck.outcome }}
+          REFINED_V5_BROWSER_STATUS: ${{ steps.refined-v5-browser.outcome }}
           VERCEL_BUILD_STATUS: ${{ steps.vercel-build.outcome }}
           TRACE_STATUS: ${{ steps.tracing.outputs.raw_status }}
           OUTPUT_STATUS: ${{ steps.output.outputs.output_status }}
@@ -253,6 +275,7 @@ jobs:
             echo "- Quality: **${QUALITY_STATUS:-${QUALITY_OUTCOME:-Not run}}**"
             echo "- Tests: **${TEST_STATUS:-Not run}**"
             echo "- Typecheck: **${TYPECHECK_STATUS:-Not run}**"
+            echo "- Refined-v5 browser hydration: **${REFINED_V5_BROWSER_STATUS:-Not run}**"
             echo "- Vercel build: **${VERCEL_BUILD_STATUS:-Not run}**"
             echo "- Next.js output tracing: **${TRACE_STATUS:-Not run}**"
             echo "- Vercel output verification: **${OUTPUT_STATUS:-Not run}**"

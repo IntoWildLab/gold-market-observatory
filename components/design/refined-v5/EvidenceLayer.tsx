@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DesignData } from "@/lib/design-data";
+import { resolveDriverSeriesId } from "@/lib/driver-presentation";
 import CapitalFlowLayer from "./CapitalFlowLayer";
 import InvestorLayer from "./InvestorLayer";
 import "./evidence-layer.css";
@@ -83,11 +84,6 @@ function ChinaResearch({ data }: { data: DesignData }) {
   </section>;
 }
 
-const driverSeries: Record<string, string> = {
-  "美元(代理)": "dxy_proxy", "10Y实际利率": "us10y_real", "10Y名义收益率": "us10y_nominal",
-  "全球黄金ETF": "gold_etf_flows", "GLD(代表性ETF)": "gld_holdings",
-  "全球央行": "cb_gold_purchases", "中国央行": "china_gold_reserves", "黄金价格(近20日)": "gold_price",
-};
 const staleEvidence: Record<string, string> = { "美元(代理)": "dxy", "10Y实际利率": "real_yield", "10Y名义收益率": "nominal_yield" };
 
 // Presentation-only wording for the existing dimension verdicts; no new vote or score.
@@ -121,7 +117,8 @@ function DriverLedger({ data }: { data: DesignData }) {
       const core = rows.filter((row) => !row.isConfirmation);
       const auxiliary = rows.filter((row) => row.isConfirmation);
       const renderRow = (row: (typeof rows)[number]) => {
-        const chart = data.charts.find((item) => item.seriesId === driverSeries[row.title]);
+        const seriesId = resolveDriverSeriesId(row.title);
+        const chart = data.charts.find((item) => item.seriesId === seriesId);
         const chartDate = [...(chart?.points ?? [])].reverse().find((point) => point.value != null)?.date;
         const macroEvidence = data.whatChanged.evidence.find((item) => item.id === staleEvidence[row.title]);
         const date = row.title === "全球黄金ETF" ? data.etf.flowsLastDate : row.title === "GLD(代表性ETF)" ? data.etf.gldDate : row.title === "全球央行" ? data.structure.cbDate : row.title === "中国央行" ? data.structure.chinaDate : chartDate;
@@ -129,7 +126,7 @@ function DriverLedger({ data }: { data: DesignData }) {
         return <div className={`v5-lower-driver-row ${row.isConfirmation ? "auxiliary" : ""}`} key={row.title}>
           <div className="v5-lower-driver-name"><span className={`v5-lower-driver-badge ${impact.tone}`}>{impact.label}</span><strong>{row.title}</strong></div>
           <div className="v5-lower-driver-reading"><div><strong>{row.behavior}</strong>{!row.isConfirmation && <span>{row.detail}</span>}</div><p>{row.implication}</p></div>
-          <div className="v5-lower-driver-fresh"><time>{date ?? "数据日未知"}</time><small>{macroEvidence?.stale ? "更新较慢" : chart?.frequency ?? (layer === "structure" ? "季度观测" : "来源日")}</small><small className="v5-lower-driver-role">{row.isConfirmation ? "AUX · 不投票" : layer === "trend" ? "RESULT · 不投票" : "CORE · 参与判断"}</small></div>
+          <div className="v5-lower-driver-fresh"><time>{date ?? "数据日未知"}</time><small>{seriesId === null ? "元数据映射待维护" : macroEvidence?.stale ? "更新较慢" : chart?.frequency ?? (layer === "structure" ? "季度观测" : "来源日")}</small><small className="v5-lower-driver-role">{row.isConfirmation ? "AUX · 不投票" : layer === "trend" ? "RESULT · 不投票" : "CORE · 参与判断"}</small></div>
         </div>;
       };
       const verdict = groupVerdict[layer];

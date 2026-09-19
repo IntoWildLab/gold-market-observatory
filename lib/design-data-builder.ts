@@ -62,6 +62,7 @@ export interface DesignData {
   generatedAt: string;
   currentDate: string;
   manifestGeneratedAt: string | null;
+  missing: PageData["missing"];
   eventRisk: PageData["eventRisk"];
   whatChanged: PageData["whatChanged"];
   gold: PageData["gold"];
@@ -145,6 +146,7 @@ export function buildDesignData(d: PageData): DesignData {
     generatedAt: d.generatedAt,
     currentDate: formatShanghaiDate(d.generatedAt),
     manifestGeneratedAt: d.manifestGeneratedAt,
+    missing: d.missing,
     eventRisk: d.eventRisk,
     whatChanged: d.whatChanged,
     gold: d.gold,

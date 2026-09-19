@@ -12,6 +12,6 @@
     "paths": { "@/*": ["./*"] },
     "types": ["node"]
   },
-  "include": ["scripts/fetch-data.ts", "scripts/fetch-event-risk.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts", "components/design/EventRiskStrip.tsx", "components/design/WhatChangedCard.tsx"],
+  "include": ["scripts/fetch-data.ts", "scripts/fetch-event-risk.ts", "scripts/inspect-data.ts", "lib/**/*.ts", "types/**/*.ts", "components/design/EventRiskStrip.tsx", "components/design/WhatChangedCard.tsx", "components/design/refined-v5/V5EventRisk.tsx", "components/design/refined-v5/V5DataAvailability.tsx"],
   "exclude": ["node_modules", "app"]
 }

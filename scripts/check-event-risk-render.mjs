@@ -36,7 +36,7 @@ async function snapshotExpectation() {
   try {
     await access(snapshotPath, constants.R_OK);
   } catch (error) {
-    if (error?.code === "ENOENT") return { kind: "missing", text: "Schedule unavailable" };
+    if (error?.code === "ENOENT") return { kind: "missing", texts: ["Schedule unavailable", "事件日程不可用"] };
     throw error;
   }
 
@@ -45,19 +45,29 @@ async function snapshotExpectation() {
     throw new Error("Event Risk snapshot is not readable by the staged render verifier");
   }
   const nearest = visibleEvents(snapshot.events, Date.now())[0];
-  if (nearest) return { kind: "event", text: String(nearest.title) };
-  if (snapshot.availability === "unavailable") return { kind: "unavailable", text: "Schedule unavailable" };
-  return { kind: "empty", text: "No major event within 72h" };
+  if (nearest) return { kind: "event", texts: [String(nearest.title)] };
+  if (snapshot.availability === "unavailable") return { kind: "unavailable", texts: ["Schedule unavailable", "事件日程不可用"] };
+  if (Date.now() - Date.parse(snapshot.generated_at) > 36 * 60 * 60 * 1000) return { kind: "stale", texts: ["Schedule may be stale", "事件日程可能已过期"] };
+  if (snapshot.availability === "partial") return { kind: "partial-empty", texts: ["已获日程暂无重大事件", "No major event within 72h"] };
+  return { kind: "empty", texts: ["No major event within 72h", "72 小时内无重大事件"] };
 }
 
 const expected = await snapshotExpectation();
 const renderedText = decodeHtml(await readFile(htmlPath, "utf8"));
-if (!renderedText.includes(expected.text)) {
+const matchedText = expected.texts.find((text) => renderedText.includes(text));
+if (!matchedText) {
   throw new Error(`Staged Event Risk render does not match snapshot expectation (${expected.kind})`);
 }
 
+const snapshot = await access(snapshotPath, constants.R_OK).then(() => readFile(snapshotPath, "utf8")).then(JSON.parse).catch(() => null);
+if (snapshot?.sources?.some((source) => source.mode === "verified_cache")
+  && !renderedText.includes("已核验")
+  && !renderedText.includes("Official schedule · verified")) {
+  throw new Error("Staged Event Risk render lost verified-cache provenance");
+}
+
 if (process.env.GITHUB_OUTPUT) {
-  const outputText = expected.text.replace(/[\r\n]/g, " ");
+  const outputText = matchedText.replace(/[\r\n]/g, " ");
   await appendFile(process.env.GITHUB_OUTPUT, `status=success\nexpected_kind=${expected.kind}\nexpected_text=${outputText}\n`, "utf8");
 }
 console.log(`Staged Event Risk render verified: ${expected.kind}.`);

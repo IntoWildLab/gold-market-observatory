@@ -313,6 +313,13 @@ jobs:
           echo "refined_status=success" >> "$GITHUB_OUTPUT"
           echo "Staged Production smoke test passed: /design/refined-v4"
 
+          if ! smoke_route /design/refined-v5; then
+            echo "::error::Staged Production smoke test failed: /design/refined-v5"
+            exit 1
+          fi
+          echo "refined_v5_status=success" >> "$GITHUB_OUTPUT"
+          echo "Staged Production smoke test passed: /design/refined-v5"
+
       - name: Run final pre-promotion safety check
         id: preflight
         env:
@@ -459,6 +466,13 @@ jobs:
           echo "refined_status=success" >> "$GITHUB_OUTPUT"
           echo "Production smoke test passed: /design/refined-v4"
 
+          if ! smoke_route /design/refined-v5; then
+            echo "::error::Formal Production smoke test failed: /design/refined-v5"
+            exit 1
+          fi
+          echo "refined_v5_status=success" >> "$GITHUB_OUTPUT"
+          echo "Production smoke test passed: /design/refined-v5"
+
       - name: Determine whether rollback is required
         id: rollback-required
         if: always() && steps.preflight.outcome == 'success' && steps.promotion.outputs.attempted == 'true'
@@ -539,7 +553,7 @@ jobs:
           }
 
           if [ "$critical" = "false" ]; then
-            if ! smoke_route / || ! smoke_route /design/refined-v4; then
+            if ! smoke_route / || ! smoke_route /design/refined-v4 || ! smoke_route /design/refined-v5; then
               critical=true
             fi
           fi
@@ -594,12 +608,14 @@ jobs:
           DOMAIN_SAFETY_STATUS: ${{ steps.classification.outputs.domain_status }}
           STAGED_ROOT_SMOKE: ${{ steps.staged-smoke.outputs.root_status }}
           STAGED_REFINED_SMOKE: ${{ steps.staged-smoke.outputs.refined_status }}
+          STAGED_REFINED_V5_SMOKE: ${{ steps.staged-smoke.outputs.refined_v5_status }}
           PREFLIGHT_STATUS: ${{ steps.preflight.outputs.status }}
           PROMOTION_ATTEMPTED: ${{ steps.promotion.outputs.attempted }}
           PROMOTION_OUTCOME: ${{ steps.promotion.outcome }}
           SWITCH_STATUS: ${{ steps.switch.outputs.status }}
           PRODUCTION_ROOT_SMOKE: ${{ steps.production-smoke.outputs.root_status }}
           PRODUCTION_REFINED_SMOKE: ${{ steps.production-smoke.outputs.refined_status }}
+          PRODUCTION_REFINED_V5_SMOKE: ${{ steps.production-smoke.outputs.refined_v5_status }}
           ROLLBACK_REQUIRED: ${{ steps.rollback-required.outputs.required }}
           ROLLBACK_STATUS: ${{ steps.rollback.outputs.status }}
         run: |
@@ -616,7 +632,7 @@ jobs:
             if [ "$ROLLBACK_STATUS" = "success" ]; then
               production_state="restored"
               final_id="${PREVIOUS_ID:-Not available}"
-            elif [ "$PROMOTION_OUTCOME" = "success" ] && [ "$SWITCH_STATUS" = "switched" ] && [ "$PRODUCTION_ROOT_SMOKE" = "success" ] && [ "$PRODUCTION_REFINED_SMOKE" = "success" ]; then
+            elif [ "$PROMOTION_OUTCOME" = "success" ] && [ "$SWITCH_STATUS" = "switched" ] && [ "$PRODUCTION_ROOT_SMOKE" = "success" ] && [ "$PRODUCTION_REFINED_SMOKE" = "success" ] && [ "$PRODUCTION_REFINED_V5_SMOKE" = "success" ]; then
               production_state="updated"
               final_id="${STAGED_ID:-Not available}"
             else
@@ -655,11 +671,13 @@ jobs:
             echo "- Domain safety: **${DOMAIN_SAFETY_STATUS:-Not run}**"
             echo "- Staged smoke /: **${STAGED_ROOT_SMOKE:-Not run}**"
             echo "- Staged smoke /design/refined-v4: **${STAGED_REFINED_SMOKE:-Not run}**"
+            echo "- Staged smoke /design/refined-v5: **${STAGED_REFINED_V5_SMOKE:-Not run}**"
             echo "- Final pre-promotion safety check: **${PREFLIGHT_STATUS:-Not run}**"
             echo "- Promotion: **${PROMOTION_OUTCOME:-Not run}**"
             echo "- Formal domain validation: **${SWITCH_STATUS:-Not run}**"
             echo "- Production smoke /: **${PRODUCTION_ROOT_SMOKE:-Not run}**"
             echo "- Production smoke /design/refined-v4: **${PRODUCTION_REFINED_SMOKE:-Not run}**"
+            echo "- Production smoke /design/refined-v5: **${PRODUCTION_REFINED_V5_SMOKE:-Not run}**"
             echo "- Rollback required: **${ROLLBACK_REQUIRED:-false}**"
             echo "- Rollback status: **${ROLLBACK_STATUS:-Not required}**"
             echo "- Production state: **${production_state}**"

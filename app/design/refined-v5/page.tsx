@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "黄金市场观察站 · 夜间研究台",
   description: "Gold Market Observatory refined-v5 dark research desk.",
+  icons: { icon: "/branding/gold-favicon.png" },
 };
 
 export default async function DesignRefinedV5Page() {

@@ -259,7 +259,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          for route in / /design/refined-v4; do
+          for route in / /design/refined-v4 /design/refined-v5; do
             response_file="$(mktemp)"
             npx --yes vercel@59.1.4 curl "$route" \
               --deployment "$STAGED_URL" \
@@ -284,7 +284,7 @@ jobs:
         run: |
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
-          npx --yes vercel@59.1.4 curl /design/refined-v4 \
+          npx --yes vercel@59.1.4 curl /design/refined-v5 \
             --deployment "$STAGED_URL" \
             --silent --show-error --fail --location \
             --output "$response_file"
