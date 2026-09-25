@@ -85,13 +85,15 @@ test("header has no fake search or account affordance", () => {
   assert.match(source, /v5-context-label/);
 });
 
-test("v5 route uses the reusable page shell while root and refined-v4 remain separate", () => {
+test("root and v5 route share the reusable page shell while refined-v4 remains separate", () => {
   const v5Layout = readFileSync(path.resolve(__dirname, "../app/design/refined-v5/layout.tsx"), "utf8");
   const rootPage = readFileSync(path.resolve(__dirname, "../app/page.tsx"), "utf8");
   const v4Layout = readFileSync(path.resolve(__dirname, "../app/design/refined-v4/layout.tsx"), "utf8");
   assert.match(v5Layout, /V5PageShell/);
   assert.match(rootPage, /function HomePage/);
-  assert.doesNotMatch(rootPage, /CosmicV5Preview|V5PageShell/);
+  assert.match(rootPage, /buildDesignData\(await buildPageData\(\)\)/);
+  assert.match(rootPage, /V5PageShell/);
+  assert.match(rootPage, /CosmicV5Preview/);
   assert.doesNotMatch(v4Layout, /V5PageShell/);
 });
 

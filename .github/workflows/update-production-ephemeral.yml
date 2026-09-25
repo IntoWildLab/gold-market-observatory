@@ -296,6 +296,10 @@ jobs:
               rm -f "$response_file"
               return 1
             fi
+            if [ "$route" = "/" ] && ! grep -q 'data-v5-page="refined-v5"' "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
             rm -f "$response_file"
           }
 
@@ -446,6 +450,10 @@ jobs:
               return 1
             fi
             if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
+            if [ "$route" = "/" ] && ! grep -q 'data-v5-page="refined-v5"' "$response_file"; then
               rm -f "$response_file"
               return 1
             fi

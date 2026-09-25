@@ -178,12 +178,14 @@ try {
       evidence: text.includes('驱动证据记录'),
       capital: text.includes('全球黄金资金流'),
       structure: text.includes('长期结构背景'),
+      navigation: Boolean(document.querySelector('.v5-nav a[href="#top"]') && document.querySelector('.v5-nav a[href="#v5-footer"]')),
+      footer: Boolean(document.querySelector('#v5-footer')),
       fakeSearch: text.includes('搜索问题、数据或观点'),
       chartPaths: document.querySelectorAll('.recharts-surface path').length,
       noHorizontalOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
     };
   })()`);
-  for (const key of ["eventRisk", "marketBrief", "research", "evidence", "capital", "structure"]) {
+  for (const key of ["eventRisk", "marketBrief", "research", "evidence", "capital", "structure", "navigation", "footer"]) {
     if (!markers[key]) throw new Error(`Missing refined-v5 marker: ${key}`);
   }
   if (markers.fakeSearch) throw new Error("Fake search affordance is still visible");
@@ -232,13 +234,13 @@ try {
       ]);
     }
   }
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  for (let attempt = 1; attempt <= 20; attempt++) {
     try {
       await rm(profile, { recursive: true, force: true });
       break;
     } catch (error) {
-      if (attempt === 5 || error?.code !== "EBUSY") throw error;
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      if (attempt === 20 || error?.code !== "EBUSY") throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 }

@@ -119,6 +119,7 @@ jobs:
             fi
             sleep 1
           done
+          node scripts/smoke-refined-v5-browser.mjs http://127.0.0.1:3000/
           node scripts/smoke-refined-v5-browser.mjs http://127.0.0.1:3000/design/refined-v5
 
       - name: Pull Vercel Preview project settings
@@ -240,6 +241,11 @@ jobs:
               --output "$response_file"
             if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
               echo "::error::Preview route ${route} did not contain the stable project title."
+              rm -f "$response_file"
+              exit 1
+            fi
+            if [ "$route" = "/" ] && ! grep -q 'data-v5-page="refined-v5"' "$response_file"; then
+              echo "::error::Preview root did not contain the refined-v5 production marker."
               rm -f "$response_file"
               exit 1
             fi

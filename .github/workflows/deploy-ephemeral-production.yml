@@ -270,6 +270,11 @@ jobs:
               rm -f "$response_file"
               exit 1
             fi
+            if [ "$route" = "/" ] && ! grep -q 'data-v5-page="refined-v5"' "$response_file"; then
+              echo "::error::Staged Production root did not contain the refined-v5 production marker."
+              rm -f "$response_file"
+              exit 1
+            fi
             rm -f "$response_file"
             echo "Staged Production smoke test passed: ${route}"
           done
