@@ -211,6 +211,10 @@ jobs:
               rm -f "$response_file"
               return 1
             fi
+            if [ "$route" = "/" ] && ! grep -q 'data-v5-page="refined-v5"' "$response_file"; then
+              rm -f "$response_file"
+              return 1
+            fi
             rm -f "$response_file"
           }
 
@@ -227,6 +231,13 @@ jobs:
           fi
           echo "refined_status=success" >> "$GITHUB_OUTPUT"
           echo "Production smoke test passed: /design/refined-v4"
+
+          if ! smoke_route /design/refined-v5; then
+            echo "::error::Formal Production smoke test failed: /design/refined-v5"
+            exit 1
+          fi
+          echo "refined_v5_status=success" >> "$GITHUB_OUTPUT"
+          echo "Production smoke test passed: /design/refined-v5"
 
       - name: Determine whether rollback is required
         id: rollback-required
@@ -310,7 +321,7 @@ jobs:
           }
 
           if [ "$critical" = "false" ]; then
-            if ! smoke_route / || ! smoke_route /design/refined-v4; then
+            if ! smoke_route / || ! smoke_route /design/refined-v4 || ! smoke_route /design/refined-v5; then
               critical=true
             fi
           fi
@@ -335,6 +346,7 @@ jobs:
           SWITCH_STATUS: ${{ steps.switch.outputs.status }}
           ROOT_SMOKE: ${{ steps.smoke.outputs.root_status }}
           REFINED_SMOKE: ${{ steps.smoke.outputs.refined_status }}
+          REFINED_V5_SMOKE: ${{ steps.smoke.outputs.refined_v5_status }}
           ROLLBACK_REQUIRED: ${{ steps.rollback-required.outputs.required }}
           ROLLBACK_STATUS: ${{ steps.rollback.outputs.status }}
           STAGED_ID: ${{ steps.preflight.outputs.staged_id }}
@@ -347,7 +359,7 @@ jobs:
           if [ "${ROLLBACK_REQUIRED:-false}" = "true" ] && [ "$ROLLBACK_STATUS" = "success" ]; then
             final_id="${PREVIOUS_ID:-Not available}"
             final_url="${PREVIOUS_URL:-Not available}"
-          elif [ "$PROMOTION_OUTCOME" = "success" ] && [ "$SWITCH_STATUS" = "switched" ] && [ "$ROOT_SMOKE" = "success" ] && [ "$REFINED_SMOKE" = "success" ]; then
+          elif [ "$PROMOTION_OUTCOME" = "success" ] && [ "$SWITCH_STATUS" = "switched" ] && [ "$ROOT_SMOKE" = "success" ] && [ "$REFINED_SMOKE" = "success" ] && [ "$REFINED_V5_SMOKE" = "success" ]; then
             final_id="${STAGED_ID:-Not available}"
             final_url="${STAGED_URL:-Not available}"
           fi
@@ -361,6 +373,7 @@ jobs:
             echo "- Formal domain switched: **${SWITCH_STATUS:-Not run}**"
             echo "- Production smoke /: **${ROOT_SMOKE:-Not run}**"
             echo "- Production smoke /design/refined-v4: **${REFINED_SMOKE:-Not run}**"
+            echo "- Production smoke /design/refined-v5: **${REFINED_V5_SMOKE:-Not run}**"
             echo "- Rollback required: **${ROLLBACK_REQUIRED:-No}**"
             echo "- Rollback status: **${ROLLBACK_STATUS:-Not required}**"
             echo "- Final Production deployment ID: ${final_id}"

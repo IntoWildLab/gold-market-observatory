@@ -2,20 +2,16 @@ import type { Metadata } from "next";
 import { buildPageData } from "@/lib/page-data";
 import { buildDesignData } from "@/lib/design-data";
 import CosmicV5Preview from "@/components/design/refined-v5/CosmicV5Preview";
-import V5PageShell from "@/components/design/refined-v5/V5PageShell";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  title: "黄金市场观察站 · 夜间研究台",
+  description: "Gold Market Observatory refined-v5 dark research desk.",
   icons: { icon: "/branding/gold-favicon.png" },
 };
 
-export default async function HomePage() {
+export default async function DesignRefinedV5Page() {
   const data = await buildDesignData(await buildPageData());
-
-  return (
-    <V5PageShell>
-      <CosmicV5Preview data={data} />
-    </V5PageShell>
-  );
+  return <CosmicV5Preview data={data} />;
 }

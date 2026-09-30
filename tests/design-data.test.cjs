@@ -65,6 +65,7 @@ function fixture() {
   return {
     generatedAt: "2026-09-15T16:30:00.000Z",
     manifestGeneratedAt: "2026-09-15T13:23:57.252Z",
+    missing: [],
     eventRisk: {
       availability: "unavailable",
       stale: false,
@@ -139,12 +140,21 @@ test("5D/20D/60D 人民币黄金归因进入 DesignData 并保留 Au99.99 角色
   assert.equal(data.currentDate, "2026-09-16");
   assert.equal(data.manifestGeneratedAt, "2026-09-15T13:23:57.252Z");
   assert.equal(data.eventRisk.availability, "unavailable");
+  assert.deepEqual(data.missing, []);
   assert.equal(data.whatChanged.availability, "insufficient");
   assert.deepEqual(Object.keys(data.china.goldAttribution.windows), WINDOWS);
   assert.equal(data.china.goldAttribution.windows["20D"].gold_contribution_pp, 12);
   assert.equal(data.china.goldAttribution.windows["20D"].deviation_contribution_pp, 14);
   assert.equal(data.china.goldBenchmark.id, "au99_99");
   assert.equal(data.china.goldBenchmark.role, "china_gold_benchmark");
+});
+
+test("missing contract is passed through without recomputation", () => {
+  const input = fixture();
+  input.missing = [{ seriesId: "us10y_real", reason: "snapshot unavailable" }];
+  const data = buildDesignData(input);
+  assert.strictEqual(data.missing, input.missing);
+  assert.deepEqual(data.missing, [{ seriesId: "us10y_real", reason: "snapshot unavailable" }]);
 });
 
 test("518880 foundation 的 NAV、日频份额、窗口、AUM 与分解值进入 DesignData", () => {

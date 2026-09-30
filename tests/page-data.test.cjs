@@ -34,8 +34,8 @@ test("buildPageData does not crash when quarterly shares, daily shares and found
   }
 });
 
-test("quarterly shares chart renders an explicit unavailable state", async () => {
-  const source = await readFile(path.resolve(__dirname, "../app/page.tsx"), "utf8");
-  assert.match(source, /c\.seriesId === "cn_gold_etf_shares" && c\.points\.length === 0/);
-  assert.match(source, /Quarterly ETF shares unavailable/);
+test("refined-v5 investor layer renders an explicit unavailable shares state", async () => {
+  const source = await readFile(path.resolve(__dirname, "../components/design/refined-v5/InvestorLayer.tsx"), "utf8");
+  assert.match(source, /daily_shares_availability === "available"/);
+  assert.match(source, /日度份额.*不可用/);
 });

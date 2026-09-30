@@ -153,32 +153,13 @@ jobs:
           EPHEMERAL_SECRET_TO_REJECT: ${{ secrets.FRED_API_KEY }}
         run: node scripts/validate-ephemeral-build.mjs vercel-output
 
-      - name: Record current Production deployment
-        id: current-production
+      - name: Snapshot current Production aliases
+        id: production-snapshot
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          node --input-type=module <<'NODE'
-          const productionHost = "gold-market-observatory.vercel.app";
-          const endpoint = new URL(`https://api.vercel.com/v13/deployments/${productionHost}`);
-          if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
-          const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
-          if (!response.ok) {
-            console.error("::error::Unable to record the current Production deployment before staged deploy.");
-            process.exit(1);
-          }
-          const deployment = await response.json();
-          if (deployment.target !== "production" || deployment.projectId !== process.env.VERCEL_PROJECT_ID || !deployment.id) {
-            console.error("::error::The current Production domain does not resolve to the configured Production project.");
-            process.exit(1);
-          }
-          await import("node:fs/promises").then(({ appendFile }) =>
-            appendFile(process.env.GITHUB_OUTPUT, `id=${deployment.id}\n`, "utf8")
-          );
-          console.log("Current Production deployment recorded for domain-safety verification.");
-          NODE
+        run: node scripts/production-alias-safety.mjs capture "$RUNNER_TEMP/production-alias-snapshot.json"
 
       - name: Deploy staged Production without domain assignment
         id: deploy
@@ -202,54 +183,14 @@ jobs:
           echo "url=$staged_url" >> "$GITHUB_OUTPUT"
           echo "Staged Production deployment created without domain assignment."
 
-      - name: Verify staged classification and domain safety
-        id: classification
+      - name: Verify staged classification and Production alias invariant
+        id: alias-safety
         env:
           STAGED_URL: ${{ steps.deploy.outputs.url }}
-          PREVIOUS_PRODUCTION_ID: ${{ steps.current-production.outputs.id }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          node --input-type=module <<'NODE'
-          const productionHost = "gold-market-observatory.vercel.app";
-          async function getDeployment(host) {
-            const endpoint = new URL(`https://api.vercel.com/v13/deployments/${host}`);
-            if (process.env.VERCEL_ORG_ID.startsWith("team_")) endpoint.searchParams.set("teamId", process.env.VERCEL_ORG_ID);
-            const response = await fetch(endpoint, { headers: { authorization: `Bearer ${process.env.VERCEL_TOKEN}` } });
-            if (!response.ok) throw new Error(`Unable to inspect deployment metadata for ${host}`);
-            return response.json();
-          }
-
-          try {
-            const stagedHost = new URL(process.env.STAGED_URL).hostname;
-            const staged = await getDeployment(stagedHost);
-            const currentProduction = await getDeployment(productionHost);
-            const stagedAliases = Array.isArray(staged.alias) ? staged.alias : [];
-            const stagedAutomaticAliases = Array.isArray(staged.automaticAliases) ? staged.automaticAliases : [];
-
-            if (staged.target !== "production" || staged.projectId !== process.env.VERCEL_PROJECT_ID) {
-              throw new Error("The staged deployment is not classified as Production for the configured project");
-            }
-            if (!staged.id || staged.id === process.env.PREVIOUS_PRODUCTION_ID) {
-              throw new Error("The staged deployment is not a distinct new Production deployment");
-            }
-            if (stagedAliases.includes(productionHost) || stagedAutomaticAliases.includes(productionHost)) {
-              throw new Error("The staged deployment has received the formal Production domain");
-            }
-            if (currentProduction.id !== process.env.PREVIOUS_PRODUCTION_ID) {
-              throw new Error("The formal Production domain changed during the staged deployment");
-            }
-
-            await import("node:fs/promises").then(({ appendFile }) =>
-              appendFile(process.env.GITHUB_OUTPUT, "status=production-staged\ndomain_status=unchanged\n", "utf8")
-            );
-            console.log("Staged deployment classification verified; formal Production domain remains unchanged.");
-          } catch (error) {
-            console.error(`::error::${error instanceof Error ? error.message : String(error)}`);
-            process.exit(1);
-          }
-          NODE
+        run: node scripts/production-alias-safety.mjs enforce "$RUNNER_TEMP/production-alias-snapshot.json" "$STAGED_URL"
 
       - name: Smoke test staged Production routes
         id: smoke
@@ -259,7 +200,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          for route in / /design/refined-v4; do
+          for route in / /design/refined-v4 /design/refined-v5; do
             response_file="$(mktemp)"
             npx --yes vercel@59.1.4 curl "$route" \
               --deployment "$STAGED_URL" \
@@ -267,6 +208,11 @@ jobs:
               --output "$response_file"
             if ! grep -Eq "Gold Market Observatory|黄金市场观察站" "$response_file"; then
               echo "::error::Staged Production route ${route} did not contain the stable project title."
+              rm -f "$response_file"
+              exit 1
+            fi
+            if [ "$route" = "/" ] && ! grep -q 'data-v5-page="refined-v5"' "$response_file"; then
+              echo "::error::Staged Production root did not contain the refined-v5 production marker."
               rm -f "$response_file"
               exit 1
             fi
@@ -284,7 +230,7 @@ jobs:
         run: |
           response_file="$(mktemp)"
           trap 'rm -f "$response_file"' EXIT
-          npx --yes vercel@59.1.4 curl /design/refined-v4 \
+          npx --yes vercel@59.1.4 curl /design/refined-v5 \
             --deployment "$STAGED_URL" \
             --silent --show-error --fail --location \
             --output "$response_file"
@@ -323,8 +269,12 @@ jobs:
           TRACE_STATUS: ${{ steps.tracing.outputs.raw_status }}
           OUTPUT_STATUS: ${{ steps.output.outputs.output_status }}
           DEPLOY_STATUS: ${{ steps.deploy.outcome }}
-          CLASSIFICATION_STATUS: ${{ steps.classification.outputs.status }}
-          DOMAIN_SAFETY_STATUS: ${{ steps.classification.outputs.domain_status }}
+          CURRENT_PRODUCTION_ID: ${{ steps.production-snapshot.outputs.current_id }}
+          PRODUCTION_ALIAS_COUNT: ${{ steps.production-snapshot.outputs.alias_count }}
+          CLASSIFICATION_STATUS: ${{ steps.alias-safety.outputs.status }}
+          ALIAS_SAFETY_STATUS: ${{ steps.alias-safety.outputs.alias_status }}
+          ALIAS_RESTORATION_STATUS: ${{ steps.alias-safety.outputs.restoration }}
+          STAGED_DEPLOYMENT_ID: ${{ steps.alias-safety.outputs.staged_id }}
           STAGED_URL: ${{ steps.deploy.outputs.url }}
           SMOKE_STATUS: ${{ steps.smoke.outcome }}
         run: |
@@ -358,7 +308,11 @@ jobs:
             echo "- Vercel output verification: **${OUTPUT_STATUS:-Not run}**"
             echo "- Staged Production deploy: **${DEPLOY_STATUS:-Not run}**"
             echo "- Deployment classification: **${CLASSIFICATION_STATUS:-Not run}**"
-            echo "- Domain assignment safety check: **${DOMAIN_SAFETY_STATUS:-Not run}**"
+            echo "- Captured Production deployment: **${CURRENT_PRODUCTION_ID:-Not run}**"
+            echo "- Captured Production aliases: **${PRODUCTION_ALIAS_COUNT:-0}**"
+            echo "- Production alias invariant: **${ALIAS_SAFETY_STATUS:-Not run}**"
+            echo "- Automatic alias restoration: **${ALIAS_RESTORATION_STATUS:-Not run}**"
+            echo "- Staged deployment ID: **${STAGED_DEPLOYMENT_ID:-Not run}**"
             echo "- Staged smoke test: **${SMOKE_STATUS:-Not run}**"
             if [ -n "$STAGED_URL" ]; then
               echo "- Staged URL: ${STAGED_URL}"
