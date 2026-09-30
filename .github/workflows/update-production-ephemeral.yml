@@ -156,6 +156,14 @@ jobs:
           EPHEMERAL_SECRET_TO_REJECT: ${{ secrets.FRED_API_KEY }}
         run: node scripts/validate-ephemeral-build.mjs vercel-output
 
+      - name: Snapshot current Production aliases
+        id: production-snapshot
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: node scripts/production-alias-safety.mjs capture "$RUNNER_TEMP/production-alias-snapshot.json"
+
       - name: Record current formal Production
         id: previous
         env:
@@ -214,6 +222,15 @@ jobs:
           fi
           echo "url=$staged_url" >> "$GITHUB_OUTPUT"
           echo "Staged Production deployment created without formal domain assignment."
+
+      - name: Verify Production alias invariant
+        id: alias-safety
+        env:
+          STAGED_URL: ${{ steps.deploy.outputs.url }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: node scripts/production-alias-safety.mjs enforce "$RUNNER_TEMP/production-alias-snapshot.json" "$STAGED_URL"
 
       - name: Verify staged classification and domain safety
         id: classification

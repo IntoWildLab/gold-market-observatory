@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const test = require("node:test");
@@ -81,4 +82,21 @@ test("discovers current target aliases and unscoped Production project domains o
     "gold-market-observatory-team.vercel.app",
     "gold-market-observatory.vercel.app",
   ]);
+});
+
+test("scheduled Production workflow guards the staged deploy with an alias snapshot", () => {
+  const workflow = fs.readFileSync(
+    path.resolve(__dirname, "../.github/workflows/update-production-ephemeral.yml"),
+    "utf8",
+  );
+  const capture = 'node scripts/production-alias-safety.mjs capture "$RUNNER_TEMP/production-alias-snapshot.json"';
+  const deploy = "npx --yes vercel@59.1.4 deploy --prebuilt --prod --skip-domain";
+  const enforce = 'node scripts/production-alias-safety.mjs enforce "$RUNNER_TEMP/production-alias-snapshot.json" "$STAGED_URL"';
+  const promote = 'npx --yes vercel@59.1.4 promote "$STAGED_URL"';
+
+  assert.ok(workflow.includes(capture), "scheduled workflow must capture the Production alias map");
+  assert.ok(workflow.includes(enforce), "scheduled workflow must enforce the Production alias invariant");
+  assert.ok(workflow.indexOf(capture) < workflow.indexOf(deploy), "alias capture must precede staged deploy");
+  assert.ok(workflow.indexOf(deploy) < workflow.indexOf(enforce), "alias enforcement must follow staged deploy");
+  assert.ok(workflow.indexOf(enforce) < workflow.indexOf(promote), "alias enforcement must precede promotion");
 });
